@@ -20,7 +20,7 @@ class InitPoint:
 ###################################################
 
 
-def PS1f_bt(theFunc,theProx1,theProx2,theGrad,d,init,iter=1000,alpha=0.1,
+def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
             rho1=1.0,rho2=1.0,gamma=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease=1.0,
             equalRho=True,verbose=True):
     '''
@@ -55,11 +55,11 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,d,init,iter=1000,alpha=0.1,
 
     b1 = theGrad(x1)
     y1 = b1
-    yhat = w
+    yhat = np.copy(w)
 
     phi_1 = (z - x1).T.dot(y1 - w)
 
-    thetaHat = np.ones(d)/d
+    thetaHat = np.copy(x1)
     wHat = b1
 
     fx1 = []
@@ -137,7 +137,8 @@ def bt_1f(alpha,x1,z,w,rho,b_old,theProx1,theGrad,y_old,phiOld,thetaHat,wHat,ste
     '''
 
     keepBTing = True
-    C1termA = (1 - alpha) * np.linalg.norm(x1 - thetaHat) + alpha * np.linalg.norm(z - thetaHat)
+    C1termA = (1 - alpha) * np.linalg.norm(x1 - thetaHat) + \
+                alpha * np.linalg.norm(z - thetaHat)
     C1termB = np.linalg.norm(w-wHat)
     grad_evals = 0
     while(keepBTing):
@@ -152,7 +153,8 @@ def bt_1f(alpha,x1,z,w,rho,b_old,theProx1,theGrad,y_old,phiOld,thetaHat,wHat,ste
         phi = (z - xnew).dot(ynew - w)
 
         C1 = np.linalg.norm(xnew - thetaHat) - C1termA - rho*C1termB
-        C2 = phi  - (rho/(2*alpha))*(np.linalg.norm(ynew - w)**2 + alpha*np.linalg.norm(yhat - w)**2)
+        C2 = phi  - (rho/(2*alpha))*(np.linalg.norm(ynew - w)**2 \
+              + alpha*np.linalg.norm(yhat - w)**2)
         C3 = (1-alpha)*(phiOld - (rho/(2*alpha))*np.linalg.norm(y_old - w)**2)
 
         if( (C2>= C3) & (C1 <= 0) ):
@@ -164,15 +166,103 @@ def bt_1f(alpha,x1,z,w,rho,b_old,theProx1,theGrad,y_old,phiOld,thetaHat,wHat,ste
     return [xnew,ynew,bnew,rho,grad_evals,yhat]
 
 
-def PS2f_bt(d,theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
+
+
+def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
+                 rho1=1.0,rho2=1.0,alpha2=0.1,stepDecrease=0.7,equalRhos=True,
+                 gamma=1.0,stepIncrease=1.0):
+    '''
+    The algorithm proposed in this paper. projective splitting with one-forward-step.
+    Essentially the same as PS1f_bt() defined above, however this variant allows for composition
+    with a linear operator as in the rare feature selection problem. So it solves
+    min_x f_1(Gx)+f_2(x)+h_2(x)
+    '''
+    # d is number of nodes in the tree
+    # the root node corresponds to the last variable in the d-dimensional vector
+    # p is number of features
+
+    z = init.z
+    w = init.w
+    d = len(z)
+    p = len(w)
+
+    x2 = init.x2
+    b2 = theGrad(x2)
+    y2 = b2
+    thetaHat = np.copy(z)
+    wHat = b2
+    yhat = np.copy(wHat)
+
+    times = [0]
+
+    fx2 = []
+    fz = []
+    rho2s = []
+
+    for k in range(iter):
+        tstartiter = time.time()
+        if k%100==0:
+            print "iter: "+str(k)
+        if equalRhos:
+            rho1 = rho2
+
+        Gz = G(z)
+        t1 = Gz + rho1 * w
+        x1 = theProx1(t1, rho1)
+        y1 = (1 / rho1) * (t1 - x1)
+
+        Gtw = Gt(w)
+        phi2 = (z - x2).T.dot(y2 + Gtw)
+
+        if stepIncrease>1.0:
+            maxFac = 1 + alpha2*(np.linalg.norm(yhat+Gtw)**2)/(np.linalg.norm(y2+Gtw)**2)
+            factor = min([maxFac,stepIncrease])
+            rho2 = factor*rho2
+
+        [x2,y2,b2,rho2,_,yhat] = bt_1f(alpha2, x2,z,-Gtw,rho2,b2,theProx2,theGrad,y2,phi2,
+                                thetaHat,wHat,stepDecrease)
+
+        rho2s.append(rho2)
+
+        phi = (Gz - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + Gtw)
+        Gty1 = Gt(y1)
+        gradz = Gty1 + y2
+        Gx2 = G(x2)
+        gradw = x1 - Gx2
+        normGradSq = gamma ** (-1) * np.linalg.norm(gradz) ** 2 \
+                     + np.linalg.norm(gradw) ** 2
+
+        if normGradSq > 0:
+            z = z - gamma ** (-1) * (phi / normGradSq) * gradz
+            w = w - (phi / normGradSq) * gradw
+
+
+        tfinishiter = time.time()
+        times.append(times[-1]+tfinishiter-tstartiter)
+        fx2.append(theFunc(x2))
+        fz.append(theFunc(z))
+
+    out = Results()
+    out.fx2 = fx2
+    out.fz = fz
+    out.times = np.array(times[1:len(times)])-times[1]
+    out.x2 = x2
+    out.x1 = x1
+    out.rhos = rho2s
+
+
+    return out
+
+
+
+
+def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
             equalRho_2f=True,verbose=True):
     '''
     projective splitting with two forward steps and backtracking
     same parameters as described in PS1f_bt() with the addition of Delta
     which defaults to 1.0 and is used in the backtracking procedure
-    -hyper_resid
-    - init point
     '''
     z = init.z
     w = init.w
@@ -235,7 +325,76 @@ def PS2f_bt(d,theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0
     out.rhos = rhosBT
     return out
 
-def bt_2f(z,rho,w,theProx1,theGrad,Delta,stepDecrease):
+
+
+def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
+                 stepDec=0.7,stepUp=1.0,rho1 = 1.0,rho2=1.0,
+                 equalRhos=True,gamma=1.0,deltabt=1.0):
+    '''
+    This is the same as PS2f_bt() above except it allows for composition with a linear term
+    as in the rare feature selection problem and so can solve problems of the form
+    min_x f_1(G_1x)+f_2(x)+h_2(x)
+    '''
+    # d is number of nodes in the tree
+    # the root node corresponds to the last variable in the d-dimensional vector
+    # p is number of features
+
+    z = init.z
+    w = init.w
+    d = len(z)
+    p = len(w)
+    rho2s = []
+    fx2 = []
+    fz = []
+    times = [0]
+
+    for k in range(iter):
+        if k%100==0:
+            print "iter: "+str(k)
+        t0iter = time.time()
+        if equalRhos:
+            rho1 = rho2
+
+        Gz = G(z)
+        t1 = Gz + rho1 * w
+        x1 = theProx1(t1, rho1)
+        y1 = (1 / rho1) * (t1 - x1)
+
+        Gtw = Gt(w)
+        [x2,y2,rho2,_] = bt_2f(z,stepUp*rho2,-Gtw,theProx2,theGrad,deltabt,stepDec)
+        rho2s.append(rho2)
+
+        phi = (Gz - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + Gtw)
+        Gty1 = Gt(y1)
+        gradz = Gty1 + y2
+        Gx2 = G(x2)
+        gradw = x1 - Gx2
+
+        normGradSq = gamma ** (-1) * np.linalg.norm(gradz) ** 2 \
+                     + np.linalg.norm(gradw) ** 2
+        if normGradSq > 0:
+            z = z - gamma ** (-1) * (phi / normGradSq) * gradz
+            w = w - (phi / normGradSq) * gradw
+
+
+
+        tenditer = time.time()
+        times.append(times[-1]+tenditer-t0iter)
+        fx2.append(theFunc(x2))
+        fz.append(theFunc(z))
+
+    out = Results()
+    out.fz = fz
+    out.fx2 = fx2
+    out.x1 = x1
+    out.x2 = x2
+    out.times = np.array(times[1:len(times)])-times[1]
+    out.rhos = rho2s
+
+    return out
+
+
+def bt_2f(z,rho, w,theProx1,theGrad,Delta,stepDecrease):
 
     keepBTing = True
     Bz = theGrad(z)
@@ -258,7 +417,7 @@ def bt_2f(z,rho,w,theProx1,theGrad,Delta,stepDecrease):
 
 
 
-def adap3op(d,proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease = 1.0,
+def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease = 1.0,
             lip_const = 0.0,iter=1000,gamma=1.0,tau=0.7,hyper_resid=-1,verbose=True):
     '''
         Adaptive version of three operator splitting (ada3po in the paper)
@@ -331,17 +490,22 @@ def adap3op(d,proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncreas
 
 
 
-def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.99,
-         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.0,verbose=True):
+def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.99,
+         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.0,verbose=True,K=-1,Kstar=-1):
     '''
         Chambolle-Pock Primal Dual splitting with backtracking
         this algorithm solves the following optimization problem:
-        min_y {gstar(-y) + fstar(y) + h(y)}
+        min_y {gstar(-K^*y) + fstar(y) + h(y)}
         where h is Lipschitz diffentiable and the other two functions are proximable
+        and K is a linear operator. K is controlled by the input K and Kstar
+        plug-in routines. If these are set to -1, no linear operator is present,
+        i.e. K is the identity.
         For example in our application to portfolio optimization, we will set
         -> fstar(y) = ind(simplex)
         -> gstar(-y) = ind(hyperplane constraint, <m,y> >= r), which means gstar(t) = ind(hyperplane constraint <m,t> <= -r)
         -> h(y) = 0.5*y^T*Q*y
+        # TODO:
+        - Handle the matrix, as in rare features
     '''
 
 
@@ -349,6 +513,12 @@ def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta
     x = init.x2
     fy = []
     [yFunc, Ay] = hfunc(y)
+
+    if K ==-1:
+        Kstary = y
+    else:
+        Kstary = Kstar(y)
+
     theta = 1
     func_evals = [1]
     grad_evals = [0]
@@ -361,7 +531,7 @@ def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta
             print(k)
 
         tstartIter = time.time()
-        xnext = proxg(x - tau * y, tau)
+        xnext = proxg(x - tau * Kstary, tau)
         taunext = min([tau*np.sqrt(1+theta),stepInc*tau])
 
         doLine = True
@@ -374,11 +544,21 @@ def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta
             theta = taunext/tau
             sigmanext = beta*taunext
             xbar = xnext + theta*(xnext - x)
-            ynext = proxfstar(y+sigmanext*(xbar - gradHy),sigmanext)
+            if K == -1:
+                Kxbar = xbar
+            else:
+                Kxbar = K(xbar)
+
+            ynext = proxfstar(y+sigmanext*(Kxbar - gradHy),sigmanext)
             [yFuncNext,Ay] = hfunc(ynext)
+            if K ==-1:
+                KstarYnext = ynext
+            else:
+                KstarYnext = Kstar(ynext)
+
             newFuncEvals += 1
 
-            C1 = taunext*sigmanext*np.linalg.norm(ynext - y)**2
+            C1 = taunext*sigmanext*np.linalg.norm(KstarYnext - Kstary)**2
             C2 = 2*sigmanext*(yFuncNext-yFunc - gradHy.T.dot(ynext - y))
             C3 = delta*np.linalg.norm(ynext - y)**2
             if(C1+C2<=C3):
@@ -390,6 +570,7 @@ def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta
         tau = taunext
         x = xnext
         y = ynext
+        Kstary = KstarYnext
         yFunc = yFuncNext
 
         tendIter = time.time()
@@ -414,9 +595,9 @@ def cpBT(d, proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta
     out.constraints = constraintErr
     return out
 
-def tseng_product(d, theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1.0,
+def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1.0,
                   theta=0.99, stepIncrease=1.0, stepDecrease=0.7,hyper_resid=-1,
-                  gamma1=1.0,gamma2=1.0,verbose=True):
+                  gamma1=1.0,gamma2=1.0,verbose=True,G=[],Gt=[]):
     '''
     Tseng applied to the primal-dual product-space form
     this instance is applied to min_x f(x) + g(x) + h(x)
@@ -431,7 +612,9 @@ def tseng_product(d, theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alph
 
     x = init.z
     w1 = init.w
-    w2 = np.copy(init.w)
+    w2 = np.copy(x)
+
+
     Fx = []
     grad_evals = [0]
     times = [0]
@@ -444,9 +627,17 @@ def tseng_product(d, theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alph
 
         tstartiter = time.time()
         # compute Ap
-        Ap1 = -x
+        if G == []:
+            Ap1 = -x
+        else:
+            Ap1 = -G(x)
+
         Ap2 = -x
-        Ap3 = w1 + w2 + gradh(x)
+        if G == []:
+            Ap3 = w1 + w2 + gradh(x)
+        else:
+            Ap3 = Gt(w1) + w2 + gradh(x)
+
         newGrads = 1
         keepBT = True
         alpha = alpha * stepIncrease
@@ -454,9 +645,17 @@ def tseng_product(d, theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alph
 
             pbar = theBigProx(w1 - gamma1 * alpha * Ap1, w2 - gamma2 * alpha * Ap2,
                               x - alpha * Ap3, proxfstar,proxgstar,alpha,gamma1,gamma2)
-            Apbar1 = -pbar[2]
+            if G == []:
+                Apbar1 = -pbar[2]
+            else:
+                Apbar1 = - G(pbar[2])
+
             Apbar2 = -pbar[2]
-            Apbar3 = pbar[0] + pbar[1] + gradh(pbar[2])
+            if G == []:
+                Apbar3 = pbar[0] + pbar[1] + gradh(pbar[2])
+            else:
+                Apbar3 = Gt(pbar[0]) + pbar[1] + gradh(pbar[2])
+
             newGrads += 1
             totalNorm \
                 = np.sqrt(gamma1*np.linalg.norm(Apbar1 - Ap1) ** 2 +
@@ -511,7 +710,7 @@ def theBigProx(a, b, c, proxfstar,proxgstar,alpha,gamma1,gamma2):
 
 def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0,
                      gamma1=1.0,lam=1.0,stepIncrease=1.0,delta=0.99,
-                     stepDecrease=0.7,hyper_resid=-1,verbose=True):
+                     stepDecrease=0.7,hyper_resid=-1,verbose=True,G=[],Gt=[]):
     '''
         Apply the forward-reflected-backward method to the same primal-dual product-space inclusion
         as we did for Tseng-pd.
@@ -522,13 +721,20 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
 
 
     x = init.z
-    d = len(x)
     w0 = init.w
-    w1 = np.copy(w0)
+    w1 = np.copy(x)
 
-    B0 = -x
+    if G == []:
+        B0 = -x
+    else:
+        B0 = -G(x)
+
     B1 = -x
-    B2 = w0 + w1 + gradh(x)
+    if G == []:
+        B2 = w0 + w1 + gradh(x)
+    else:
+        B2 = Gt(w0) + w1 + gradh(x)
+
 
     B0old = B0
     B1old = B1
@@ -557,9 +763,17 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
             phat = theBigProx(toProx0, toProx1, toProx2, proxfstar, proxgstar,
                               lam, gamma0, gamma1)
 
-            Bhat0 = -phat[2]
+            if G == []:
+                Bhat0 = -phat[2]
+            else:
+                Bhat0 = -G(phat[2])
+
             Bhat1 = -phat[2]
-            Bhat2 = phat[0] + phat[1] + gradh(phat[2])
+            if G == []:
+                Bhat2 = phat[0] + phat[1] + gradh(phat[2])
+            else:
+                Bhat2 = Gt(phat[0]) + phat[1] + gradh(phat[2])
+
             newGrads += 1
 
             normLeft = np.linalg.norm(Bhat0-B0)**2 + np.linalg.norm(Bhat1-B1)**2\
@@ -623,6 +837,17 @@ def proxL1(a,rho, lam):
     x+= (a<-rholam)*(a+rholam)
     return x
 
+def proxL1_v2(a,thresh):
+    '''
+    variant of the above
+    '''
+    x = (a> thresh)*(a-thresh)
+    x+= (a<-thresh)*(a+thresh)
+    return x
+
+def projLInf(x,thrsh):
+    return (x>=-thrsh)*(x<=thrsh)*x + (x>thrsh)*thrsh - (x<-thrsh)*thrsh
+
 def projSimplex(a):
     '''
     Project onto the simplex
@@ -657,7 +882,7 @@ def posPart(y):
 
 def projHplane(a,m,r):
     '''
-    project to the hyperplane
+    project to the hyperplane defined in the portfolio problem.
     '''
     mTa = m.T.dot(a)
     if(mTa < r):
@@ -668,7 +893,7 @@ def projHplane(a,m,r):
 
 def projHplaneCP(a,m,r):
     '''
-    project to the hyperplane,
+    project to the hyperplane defined in the portfolio problem.
     cp-bt version projects onto <m,a><=-r
     '''
 

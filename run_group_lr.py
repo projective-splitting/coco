@@ -110,7 +110,7 @@ def print_results(alg,x,time2run):
 
 print("running ada3op")
 init = algo.InitPoint([],[],np.zeros(d+1),[])
-out3op = algo.adap3op(d+1,group_prox,theGrad_smart,lrFunc,theFunc,prox_L1,lrFunc_smart,
+out3op = algo.adap3op(group_prox,theGrad_smart,lrFunc,theFunc,prox_L1,lrFunc_smart,
             init, stepIncrease = step_increase,iter=iter,lip_const = lam1)
 print_results("ada3op",out3op.x,out3op.times[-1])
 
@@ -118,28 +118,28 @@ print_results("ada3op",out3op.x,out3op.times[-1])
 
 print("running 1fbt...")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),np.zeros(d+1),np.zeros(d+1))
-out1f = algo.PS1f_bt(theFunc,prox_L1,group_prox,theGrad,d+1,init,gamma = gamma1f,
+out1f = algo.PS1f_bt(theFunc,prox_L1,group_prox,theGrad,init,gamma = gamma1f,
                      stepIncrease = step_increase,iter=iter)
 print_results("ps1fbt",out1f.x1,out1f.times[-1])
 
 
 print("running 2fbt...")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
-out2f = algo.PS2f_bt(d+1,theFunc,theGrad,prox_L1,group_prox,init,iter=iter,
+out2f = algo.PS2f_bt(theFunc,theGrad,prox_L1,group_prox,init,iter=iter,
                      gamma=gamma2f,stepIncrease = step_increase)
 
 print_results("ps2fbt",out2f.x1,out2f.times[-1])
 
 print("running cp-bt")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),[],[])
-outcp = algo.cpBT(d+1, group_prox, the_grad_smart_for_cp, proxg_for_cp,
+outcp = algo.cpBT(group_prox, the_grad_smart_for_cp, proxg_for_cp,
                   theFunc, the_func_smart_for_cp, init, iter=iter,beta=betacp,
                   stepInc=step_increase)
 print_results("cp-bt",outcp.y,outcp.times[-1])
 
 print("Running Tseng-pd")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
-outTseng = algo.tseng_product(d+1, theFunc, proxfstar4tseng, proxgstar4tseng,
+outTseng = algo.tseng_product(theFunc, proxfstar4tseng, proxgstar4tseng,
                               theGrad, init, stepIncrease=step_increase,
                                gamma1=gammatg,gamma2=gammatg,iter=iter)
 print_results("tseng-pd",outTseng.x,outTseng.times[-1])
@@ -159,7 +159,7 @@ print("total running time: "+str(tendFinal - tActualStart))
 print("plotting...")
 
 plot_steps = True
-if plot_steps:    
+if plot_steps:
     markFreq=100
     markerSz = 10
     plt.semilogy(out1f.rhos)

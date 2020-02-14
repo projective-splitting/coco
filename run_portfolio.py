@@ -171,7 +171,7 @@ print("Running projective splitting one-forward-step backtrack... (ps1fbt)")
 # each new variable
 
 initPoint = algo.InitPoint(np.ones(d)/d,np.ones(d)/d,np.ones(d)/d,np.zeros(d))
-out1f = algo.PS1f_bt(theFunc,theProx1,theProx2,theGrad,d,initPoint,gamma=gamma1f,
+out1f = algo.PS1f_bt(theFunc,theProx1,theProx2,theGrad,initPoint,gamma=gamma1f,
                     hyper_resid=hyper_resid,verbose=verbose,iter=iter)
 
 print_results("1fbt", out1f.times[-1], out1f.x1, out1f.grad_evals)
@@ -198,7 +198,7 @@ print_results("frb", outfrb.times[-1],outfrb.x, outfrb.grad_evals)
 print("=========================")
 print("Running adaptive three operator splitting (ada3op)")
 init = algo.InitPoint([],[],np.ones(d)/d,[])
-out3op = algo.adap3op(d,theProx1,theGradSmart,theFunc,theFunc,theProx2,theFuncSmart,
+out3op = algo.adap3op(theProx1,theGradSmart,theFunc,theFunc,theProx2,theFuncSmart,
                     init,hyper_resid=hyper_resid,verbose=verbose,iter=iter)
 
 print_results("ada3op", out3op.times[-1], out3op.x,out3op.func_evals+out3op.grad_evals)
@@ -209,7 +209,7 @@ print_results("ada3op", out3op.times[-1], out3op.x,out3op.func_evals+out3op.grad
 print("=========================")
 print("Running projective splitting two-forward-step with backtrack... (ps2fbt)")
 init = algo.InitPoint([],[],np.ones(d)/d,np.zeros(d))
-out2f = algo.PS2f_bt(d,theFunc,theGrad,theProx1,theProx2,init,gamma=gamma2f,
+out2f = algo.PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,gamma=gamma2f,
                     hyper_resid=hyper_resid,verbose=verbose,iter=iter)
 
 print_results("2fbt", out2f.times[-1], out2f.x1, out2f.grad_evals)
@@ -223,7 +223,7 @@ stepInc_cpbt  = 1.1
 
 init = algo.InitPoint(np.ones(d)/d,np.ones(d)/d,[],[])
 
-outcp = algo.cpBT(d, theProx1, theGradThankful, proxg4cp, theFunc, theFuncHelpful, init = init,
+outcp = algo.cpBT(theProx1, theGradThankful, proxg4cp, theFunc, theFuncHelpful, init = init,
                   hyper_resid=hyper_resid,stepInc=stepInc_cpbt,beta=betacp,iter=iter,
                   verbose=verbose)
 
@@ -234,7 +234,7 @@ print("running Tseng-pd...")
 
 init = algo.InitPoint([],[],np.ones(d)/d,np.ones(d)/d)
 
-outTseng = algo.tseng_product(d, theFunc, proxfstar4Tseng, proxgstar4Tseng,
+outTseng = algo.tseng_product(theFunc, proxfstar4Tseng, proxgstar4Tseng,
                               theGrad,init,hyper_resid=hyper_resid,iter=iter,
                               gamma1=gamma_tg,gamma2=gamma_tg,verbose=verbose)
 
