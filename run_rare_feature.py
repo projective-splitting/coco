@@ -53,6 +53,15 @@ gammafrb = parser.parse_args().gammafrb
 betacp = parser.parse_args().betacp
 
 # the following matrices are loaded in scipy's sparse matrix format '.npz'
+#The trip advisor data were kindly shared with us by Xiaohan Yan and Jacob Bien
+#Yan, X., Bien, J.: Rare Feature Selection in High Dimensions. arXiv preprint
+#arXiv:1803.06675 (2018).
+
+#The trip advisor data in R and Python format is also available at
+#https://github.com/yanxht/TripAdvisorData
+#and we have included it in Python format in our repo here in
+#data/trip_advisor/
+
 S_train = sp.load_npz('data/trip_advisor/S_train.npz') # training matrix
 S_test  = sp.load_npz('data/trip_advisor/S_test.npz')  # testing matrix
 S_A     = sp.load_npz('data/trip_advisor/S_A.npz')     # this matrix is called H
@@ -269,7 +278,8 @@ opt = min(np.concatenate([np.array(out1f.fx2), np.array(out2f.fx2), np.array(out
 
 markFreq = 2000
 markerSz = 10
-
+print("plotting relative error to optimality of funtion values")
+print("optimal value estimated as lowest returned by any algorithm")
 plt.semilogy(out1f.times,(np.array(out1f.fx2)-opt)/opt)
 plt.semilogy(out2f.times,(np.array(out2f.fx2)-opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
 plt.semilogy(outfrb.times, (np.array(outfrb.f)-opt)/opt,'D-',markevery = markFreq,markersize =markerSz,color='brown')
@@ -279,9 +289,23 @@ plt.semilogy(outtseng.times,(np.array(outtseng.f)-opt)/opt,'mx-',markevery = mar
 fonts = 15
 plt.xlabel('time (s)',fontsize = fonts)
 plt.legend(['ps1fbt','ps2fbt','frb-pd','cp-bt','Tseng-pd'])
+plt.title('relative error to optimality of function values')
 plt.grid()
 plt.show()
 
+print("================")
+print("================")
+print("================")
+print("plotting raw function values...")
+plt.plot(out1f.times,np.array(out1f.fx2))
+plt.plot(out2f.times,np.array(out2f.fx2))
+plt.plot(outfrb.times,np.array(outfrb.f))
+plt.plot(outcp.times,np.array(outcp.f))
+plt.plot(outtseng.times,np.array(outtseng.f))
+plt.xlabel('times (s)')
+plt.title('raw function values')
+plt.legend(['ps1fbt','ps2fbt','frb-pd','cp-bt','Tseng-pd'])
+plt.show()
 print("================")
 print("================")
 print("================")
@@ -289,6 +313,7 @@ print("plotting step sizes...")
 print("================")
 print("================")
 print("================")
+
 markFreq = 1000
 plt.plot(out1f.rhos)
 plt.plot(out2f.rhos,':')

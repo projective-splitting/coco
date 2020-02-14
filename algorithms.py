@@ -178,9 +178,6 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     with a linear operator as in the rare feature selection problem. So it solves
     min_x f_1(Gx)+f_2(x)+h_2(x)
     '''
-    # d is number of nodes in the tree
-    # the root node corresponds to the last variable in the d-dimensional vector
-    # p is number of features
 
     z = init.z
     w = init.w
@@ -203,7 +200,7 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     for k in range(iter):
         tstartiter = time.time()
         if k%100==0:
-            print "iter: "+str(k)
+            print("iter: "+str(k))
         if equalRhos:
             rho1 = rho2
 
@@ -338,9 +335,6 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     as in the rare feature selection problem and so can solve problems of the form
     min_x f_1(G_1x)+f_2(x)+h_2(x)
     '''
-    # d is number of nodes in the tree
-    # the root node corresponds to the last variable in the d-dimensional vector
-    # p is number of features
 
     z = init.z
     w = init.w
@@ -353,7 +347,7 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
     for k in range(iter):
         if k%100==0:
-            print "iter: "+str(k)
+            print("iter: "+str(k))
         t0iter = time.time()
         if equalRhos:
             rho1 = rho2

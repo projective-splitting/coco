@@ -1,4 +1,3 @@
-
 This is the python code for running the experiments in Section 6 of
 
 https://arxiv.org/pdf/1902.09025.pdf
@@ -15,9 +14,7 @@ https://github.com/yanxht/TripAdvisorData
 and we have included it in Python format in our repo here in
 data/trip_advisor
 
-You will need to install numpy and scipy.
-
-To install, simply pull this repository to an appropriate directory and run
+You will need to have numpy and scipy installed. To run this code, simply pull this repository to an appropriate directory and run
 python scripts from that directory.
 
 To run the portfolio optimization experiment:
@@ -36,14 +33,19 @@ $python run_group_lr.py -h
 $python run_rare_feature.py -h
 
 The algorithms are implemented in algorithms.py, including
-PS1f_bt() - one forward step projective splitting
-PS2f_bt() - two forward step projective splitting
-PS1f_bt_comp() - one forward step projective splitting  for composite opt problems.
-                 For convenience we implemented this in a separate function.
-PS2f_bt_comp() - two forward step projective splitting  for composite opt problems.
-                 For convenience we implemented this in a separate function.
-cpBT() - Chambolle-Pock primal dual splitting back tracking variant
-Tseng_product() - Tseng-pd
-for_reflect_back() - frb-pd
+PS1f_bt() - one forward step projective splitting with backtracking
+PS2f_bt() - two forward step projective splitting with backtracking
+PS1f_bt_comp()     - one forward step projective splitting  for composite problems, i.e. some of the terms in the objective are composed with a
+                     linear operator.
+                     For convenience we implemented this in a separate function.
+PS2f_bt_comp()     - two forward step projective splitting  for composite problems, i.e. some of the terms in the objective are composed with a
+                     linear operator.
+                     For convenience we implemented this in a separate function.
+cpBT()             - Chambolle-Pock primal dual splitting back tracking variant, from the paper:
+                     Malitsky, Y., Pock, T.: A first-order primal-dual algorithm with linesearch. SIAM Journal on Optimization 28(1), 411–432 (2018)
+Tseng_product()    - Tseng-pd, from the paper Combettes, P.L., Pesquet, J.C.: Primal-dual splitting algorithm for solving inclusions
+                     with mixtures of composite, Lipschitzian, and parallel-sum type monotone operators.
+                     Set-Valued and variational analysis 20(2), 307–330 (2012)
+for_reflect_back() - frb-pd, from the paper XX
 
-Additional utilities for group logistic regression are defined in group_lr.py. 
+Additional utilities for group logistic regression are defined in group_lr.py.
