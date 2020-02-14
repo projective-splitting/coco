@@ -30,11 +30,11 @@ implementations of
   without cocoercivity. arXiv preprint arXiv:1808.04162 (2018)
 
 To run the experiments in [1]:
-1. Ensure that numpy, scipy, matplotlib, and argpass are installed.
-2. Save run_portfolio.py, run_group_lr.py, run_rare_feature.py, algorithms.py, and group_lr.py in the same directory.
-3. Save the datasets in a subdirectory of that directory called "data".
-(steps 2 and 3 can be accomplished with git pull)
-4. Run python from that directory as follows:
+1. Ensure that numpy, scipy, matplotlib, and argpass are installed on your system.
+2. Navigate to the directory you would like to save the data and type
+  $git clone https://github.com/projective-splitting/coco.git
+  Or if you're on windows/mac, click download, download the zip file, unzip where you want the code to live.
+3. Run python from that directory as follows:
   To run the portfolio optimization experiment:
   $python run_portfolio.py
 
