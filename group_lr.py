@@ -1,14 +1,9 @@
 import numpy as np
-import time
-from matplotlib import pyplot as plt
-
 
 #=============== functions for assessing training performance #===============
 def training_error_rate(A,xhat,y):
     predictions = np.sign(A.dot(xhat))
     scores = A.dot(xhat)
-
-
     return float(sum(predictions!=y))/len(y)
 
 def nnz_groups(Partition,x):
@@ -17,7 +12,6 @@ def nnz_groups(Partition,x):
 
 
 #=============== useful prox, projection, and the logit for logreg calculations
-
 def proxL1(a,rholam):
     x = (a> rholam)*(a-rholam)
     x+= (a<-rholam)*(a+rholam)
@@ -47,7 +41,6 @@ def block_thresh(a,P,mus):
         x[P[i]]=norm_thresh(a[P[i]],mus[i])
     return x
 
-
 def norm_thresh(a,mu):
     norma = np.linalg.norm(a,2)
     if(norma<=mu):
@@ -57,7 +50,6 @@ def norm_thresh(a,mu):
         return coef*a
 
 #=========== gradients ==========================
-
 def LRgrad(A,x,y):
     Ax = A.dot(x)
     score = -y*Ax
@@ -65,12 +57,18 @@ def LRgrad(A,x,y):
     return -A.T.dot(y*logItScore)
 
 def LRgrad_smart(A,x,y):
+    '''
+    smart gradient also returns matrix multiply for future use
+    '''
     Ax = A.dot(x)
     score = -y*Ax
     [logItScore,_] = logit(score)
     return [-A.T.dot(y*logItScore),Ax]
 
 def LRgrad_smart_alt(A,y,Ax):
+    '''
+    smart grad alt uses a previously computed matrix multiply
+    '''
     score = -y*Ax
     [logItScore,_] = logit(score)
     return -A.T.dot(y*logItScore)
@@ -78,15 +76,20 @@ def LRgrad_smart_alt(A,y,Ax):
 #============ objective function evals ===================
 
 def LRfunc_smart(A,x,y):
+    '''
+    func smart also returns matrix multiply for future use
+    '''
     Ax = A.dot(x)
     score = -y * Ax
     [logItScore,secondTerm]=logit(score)
     return [sum(secondTerm),Ax]
 
 def LRfunc_smart_alt(y, Ax):
+    '''
+    func smart alt uses a previously computed matrix multiply
+    '''
     score = -y * Ax
     return sum(np.log(1+np.exp(score)))
-
 
 
 #========== create all plugin functions used in test_group_lr.py =============
@@ -94,7 +97,6 @@ def LRfunc_smart_alt(y, Ax):
 def create_all_funcs(A,y,Partitions,lam2s,lam_L1):
 
     # gradients
-
     def the_grad_smart_for_mal(Ax):
         return LRgrad_smart_alt(A, y, Ax)
 
@@ -105,7 +107,6 @@ def create_all_funcs(A,y,Partitions,lam2s,lam_L1):
         return LRgrad_smart(A,x,y)
 
     # objective function evaluators
-
     def the_func_smart_for_mal(x):
         return LRfunc_smart(A, x, y)
 
@@ -138,7 +139,6 @@ def create_all_funcs(A,y,Partitions,lam2s,lam_L1):
 
     def proxgstar4tseng(a, alpha):
         return a - alpha * prox_L1(a / alpha, alpha ** (-1))
-
 
     def group_prox(x,rho):
         return block_thresh(x,Partitions,rho*lam2s)

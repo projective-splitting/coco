@@ -8,7 +8,7 @@ $python run_portfolio.py
 This runs with default parameters.
 To see what parameters can be set from the command line, run
 $python run_portfolio.py -h
-This code has been tested with python2.7 and python3.5 and requires numpy.
+This code has been tested with python2.7 and python3.5.
 '''
 import algorithms as algo
 import numpy as np
@@ -55,11 +55,7 @@ betacp = parser.parse_args().betacp
 gamma_tg = parser.parse_args().gammatg
 runCVX = parser.parse_args().runCVX
 
-
-
 tBegin = time.time()
-
-
 
 # randomly generate vector m of mean investment returns (between 0 and 100)
 # appearing in the constraints
@@ -102,12 +98,19 @@ def theProx2(t, rho):
     return algo.projHplane(t,m,r)
 
 def hyper_resid(x):
+    #hyperplane residual
     return -min([0,m.dot(x)-r])
 
 def theGrad(x):
     return Q.dot(x)
 
 def theGradSmart(x):
+    # many of our algorithms are implemented to take advantage of
+    # matrix multiplications in computed previous gradients, for example in
+    # future func evaluations (eg: cp-bt).
+    # for portfolio this makes no difference as the gradient is the matrix
+    # multiply, but for consistency with other problems, we define the smart
+    # gradient in this way.
     Qx = Q.dot(x)
     return [Qx,Qx]
 
@@ -115,13 +118,17 @@ def theFunc(x):
     return 0.5*x.T.dot(Q.dot(x))
 
 def theFuncSmart(x,Qx):
+    # smart func makes use of the previously computed matrix multiply
     return 0.5*x.T.dot(Qx)
 
 def theFuncHelpful(x):
+    # smart func evaluation also returns the matrix multiply for future use.
     Qx = Q.dot(x)
     return [0.5*x.T.dot(Q.dot(x)),Qx]
 
-def theGradThankful(Qx):
+def theGradEasy(Qx):
+    # This grad evaluation uses the matrix multiply which was already computed.
+    # Used in cp-bt.
     return Qx
 
 def prox2cp(a):
@@ -130,33 +137,26 @@ def prox2cp(a):
 def proxg4cp(a,tau):
     return a - tau*prox2cp(a/tau)
 
-
-
 def print_results(alg, t, x, mults):
     # function to print after an algorithm runs
     print("==================================")
-    print(alg +" running time (excluding function computes for plots): "+str(t))
-    print(alg +" simplex constraint (should be 1): " + str(sum(x)))
-    print(alg +" nonnegativity constraint (should be positive): " + str(min(x)))
-    print(alg +" hyperplane constraint (should be positive): " + str(x.dot(m) - r))
-    print(alg +" total matrix multiplications: "+str(mults[-1]))
+    print(alg + " running time (excluding function computes for plots): " +str(t))
+    print(alg + " simplex constraint (should be 1): " + str(sum(x)))
+    print(alg + " nonnegativity constraint (should be positive): " + str(min(x)))
+    print(alg + " hyperplane constraint (should be positive): " + str(x.dot(m) - r))
+    print(alg + " total matrix multiplications: " + str(mults[-1]))
 
 #----------------------------------------------------
 #----------------------------------------------------
 #----------------------------------------------------
-# ...Running algorithms...
+# ...Running algorithms..............................
 #----------------------------------------------------
 
+print("number of iterations (same for each method): " + str(iter))
 
 
-
-
-print("number of iterations (same for each method): "+str(iter))
-
-
-# set to true to run cvx. Only good for d<=1000 on my machine otherwise very slow
+# set runCVX to true to run cvx. Only good for d<=1000 on my machine otherwise too slow
 # also, you must have CVXPY properly installed
-# finally, uncomment import cvxpy as cvx from the algorithms module
 
 if(runCVX):
     print("running cvx...")
@@ -170,6 +170,7 @@ else:
 print("=========================")
 print("Running projective splitting one-forward-step backtrack... (ps1fbt)")
 
+# initPoint returns an initial point to start the algorithm.
 # initPoint is called before every algorithm to ensure we get new memory for
 # each new variable
 
@@ -181,53 +182,34 @@ print_results("1fbt", out1f.times[-1], out1f.x1, out1f.grad_evals)
 
 print("=========================")
 print("running forward reflected backward (primal-dual)... (frb-pd)")
-
 x0 = np.ones(d)/d
 init = algo.InitPoint([],[],np.ones(d)/d,np.zeros(d))
-# gamma0_frb has an effect on performance and must be tuned
-# see table 1 on page 30 of the arXiv paper for its values in our experiments
-gamma_frb = 1.0
 outfrb = algo.for_reflect_back(theFunc,proxfstar4Tseng,proxgstar4Tseng,theGrad,init,
                                 gamma0=gamma_frb,gamma1=gamma_frb,iter=iter,
                                 hyper_resid=hyper_resid,verbose=verbose)
 
-
-
-
 print_results("frb", outfrb.times[-1],outfrb.x, outfrb.grad_evals)
-
-
 
 print("=========================")
 print("Running adaptive three operator splitting (ada3op)")
 init = algo.InitPoint([],[],np.ones(d)/d,[])
 out3op = algo.adap3op(theProx1,theGradSmart,theFunc,theFunc,theProx2,theFuncSmart,
                     init,hyper_resid=hyper_resid,verbose=verbose,iter=iter)
-
 print_results("ada3op", out3op.times[-1], out3op.x,out3op.func_evals+out3op.grad_evals)
-
-
-
 
 print("=========================")
 print("Running projective splitting two-forward-step with backtrack... (ps2fbt)")
 init = algo.InitPoint([],[],np.ones(d)/d,np.zeros(d))
 out2f = algo.PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,gamma=gamma2f,
                     hyper_resid=hyper_resid,verbose=verbose,iter=iter)
-
 print_results("2fbt", out2f.times[-1], out2f.x1, out2f.grad_evals)
 
 print("=========================")
 print("Running Chambolle-Pock Primal-Dual splitting (cp-bt)...")
 
-# performance of cp-bt is better if you allow the stepsize to increase slightly
-# at each iteration before backtracking
-stepInc_cpbt  = 1.1
-
 init = algo.InitPoint(np.ones(d)/d,np.ones(d)/d,[],[])
-
-outcp = algo.cpBT(theProx1, theGradThankful, proxg4cp, theFunc, theFuncHelpful, init = init,
-                  hyper_resid=hyper_resid,stepInc=stepInc_cpbt,beta=betacp,iter=iter,
+outcp = algo.cpBT(theProx1, theGradEasy, proxg4cp, theFunc, theFuncHelpful, init = init,
+                  hyper_resid=hyper_resid,beta=betacp,iter=iter,
                   verbose=verbose)
 
 print_results("cp-bt", outcp.times[-1], outcp.y, outcp.func_evals)
@@ -248,14 +230,13 @@ print("=========================")
 print("plotting...")
 
 
-plotSteps = True
-if plotSteps:
-    plt.plot(out1f.rhos)
-    plt.plot(out2f.rhos,':')
-    plt.xlabel('iterations')
-    plt.title('discovered stepsizes via backtracking for portfolio')
-    plt.legend(['1f','2f'])
-    plt.show()
+
+plt.plot(out1f.rhos)
+plt.plot(out2f.rhos,':')
+plt.xlabel('iterations')
+plt.title('discovered stepsizes via backtracking for portfolio')
+plt.legend(['1f','2f'])
+plt.show()
 
 
 #Select f^* (the optimal function value) to be equal to the lowest function value returned
@@ -285,106 +266,99 @@ else:
     opt = min(np.array(opt2compare))
 
 
-plotConstraintViolations = True
-if plotConstraintViolations:
-    plt.semilogy(out1f.constraints)
-    plt.semilogy(out2f.constraints)
-    plt.semilogy(out3op.constraints)
-    plt.semilogy(outfrb.constraints)
-    plt.semilogy(outcp.constraints)
-    plt.semilogy(outTseng.constraints)
-    plt.ylabel('constraint violations')
-    plt.xlabel('iteration')
-    plt.legend(['1fbt','2fbt','ada3op','frb-pd','cp-bt','tseng-pd'])
-    plt.show()
+
+plt.semilogy(out1f.constraints)
+plt.semilogy(out2f.constraints)
+plt.semilogy(out3op.constraints)
+plt.semilogy(outfrb.constraints)
+plt.semilogy(outcp.constraints)
+plt.semilogy(outTseng.constraints)
+plt.ylabel('constraint violations')
+plt.xlabel('iteration')
+plt.legend(['1fbt','2fbt','ada3op','frb-pd','cp-bt','tseng-pd'])
+plt.show()
 
 
-logPlot = True
-if(logPlot):
-    opt1 = opt
-    if(abs(opt)<1e-7):
-        print("opt val is 0, so not doing relative error plot")
-        opt2 = 1.0
-    else:
-        opt2 = opt
 
-    plt.semilogy(abs(np.array(out1f.fx1)-opt1)/opt2 )
-    plt.semilogy(abs(np.array(out2f.fx1)-opt1)/opt2)
-    plt.semilogy(abs(np.array(out3op.f) - opt1) / opt2)
-    plt.semilogy(abs(np.array(outcp.f)-opt1)/opt2)
-    plt.semilogy(abs(np.array(outTseng.f) - opt1) / opt2)
-    plt.semilogy(abs(np.array(outfrb.f)-opt1)/opt2)
+opt1 = opt
+if(abs(opt)<1e-7):
+    print("opt val is 0, so not doing relative error plot")
+    opt2 = 1.0
+else:
+    opt2 = opt
 
-    plt.xlabel('Number of Iterations')
-    plt.ylabel('Relative Objective Optimality Gap')
-    plt.grid()
-    plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
-    plt.show()
+plt.semilogy(abs(np.array(out1f.fx1)-opt1)/opt2 )
+plt.semilogy(abs(np.array(out2f.fx1)-opt1)/opt2)
+plt.semilogy(abs(np.array(out3op.f) - opt1) / opt2)
+plt.semilogy(abs(np.array(outcp.f)-opt1)/opt2)
+plt.semilogy(abs(np.array(outTseng.f) - opt1) / opt2)
+plt.semilogy(abs(np.array(outfrb.f)-opt1)/opt2)
+
+plt.xlabel('Number of Iterations')
+plt.ylabel('Relative Objective Optimality Gap')
+plt.grid()
+plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
+plt.show()
 
 
 # normal (non-log) plot of function vals vs iteration number
-normalPlot = True
-if(normalPlot):
-    plt.plot(out1f.fx1)
-    plt.plot(out2f.fx1)
-    plt.plot(out3op.f)
-    plt.plot(outfrb.f)
-    plt.plot(outcp.f)
-    plt.plot(outTseng.f)
-    plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','frb','cpbt','tseng'])
-    plt.xlabel("iteration")
-    plt.ylabel("function values")
-    plt.title('function values')
 
-    plt.show()
+
+plt.plot(out1f.fx1)
+plt.plot(out2f.fx1)
+plt.plot(out3op.f)
+plt.plot(outfrb.f)
+plt.plot(outcp.f)
+plt.plot(outTseng.f)
+plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','frb','cpbt','tseng'])
+plt.xlabel("iteration")
+plt.ylabel("function values")
+plt.title('function values')
+
+plt.show()
 
 # semilogy plot vs number of matrix multiplications
-plotvsMults = True
-if(plotvsMults):
-    opt1 = opt
-    if(abs(opt)<1e-7):
-        print("opt val is 0, so not doing relative error plot")
-        opt2 = 1.0
-    else:
-        opt2 = opt
-
-    mults3op = np.array(out3op.grad_evals[0:iter]) + np.array(out3op.func_evals[0:iter])
-    plt.semilogy(out1f.grad_evals[0:iter],[abs(out1f.fx1[i] - opt1) / opt2 for i in range(iter)])
-    plt.semilogy(out2f.grad_evals[0:iter],[abs(out2f.fx1[i] - opt1) / opt2 for i in range(iter)],':')
-    plt.semilogy(mults3op, [abs(out3op.f[i] - opt1) / opt2 for i in range(iter)],'--')
-    plt.semilogy(outcp.func_evals,abs(np.array(outcp.f) - opt1) / opt2)
-    plt.semilogy(outTseng.grad_evals, abs(np.array(outTseng.f) - opt1) / opt2)
-    plt.semilogy(outfrb.grad_evals, abs(np.array(outfrb.f) - opt1) / opt2)
-
-    plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
-    plt.xlabel('Matrix Multiplies')
-    plt.ylabel('Relative Objective Optimality Gap')
-    plt.grid()
-    plt.show()
 
 
-plotvstime = True
-if plotvstime:
-    opt1 = opt
-    if(abs(opt)<1e-7):
-        print("opt val is 0, so not doing relative error plot")
-        opt2 = 1.0
-    else:
-        opt2 = opt
-    plt.semilogy(out1f.times,abs(np.array(out1f.fx1)-opt1)/opt2)
-    plt.semilogy(out2f.times, abs(np.array(out2f.fx1) - opt1) / opt2,':')
-    plt.semilogy(out3op.times, abs(np.array(out3op.f) - opt1) / opt2,'--')
-    plt.semilogy(outcp.times,abs(np.array(outcp.f) - opt1) / opt2)
-    plt.semilogy(outTseng.times, abs(np.array(outTseng.f) - opt1) / opt2)
-    plt.semilogy(outfrb.times, abs(np.array(outfrb.f) - opt1) / opt2)
+opt1 = opt
+if(abs(opt)<1e-7):
+    print("opt val is 0, so not doing relative error plot")
+    opt2 = 1.0
+else:
+    opt2 = opt
 
-    plt.grid()
-    plt.xlabel('time (s)')
-    plt.ylabel('Relative Objective Optimality Gap')
-    plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb-pd'])
-    plt.show()
+mults3op = np.array(out3op.grad_evals[0:iter]) + np.array(out3op.func_evals[0:iter])
+plt.semilogy(out1f.grad_evals[0:iter],[abs(out1f.fx1[i] - opt1) / opt2 for i in range(iter)])
+plt.semilogy(out2f.grad_evals[0:iter],[abs(out2f.fx1[i] - opt1) / opt2 for i in range(iter)],':')
+plt.semilogy(mults3op, [abs(out3op.f[i] - opt1) / opt2 for i in range(iter)],'--')
+plt.semilogy(outcp.func_evals,abs(np.array(outcp.f) - opt1) / opt2)
+plt.semilogy(outTseng.grad_evals, abs(np.array(outTseng.f) - opt1) / opt2)
+plt.semilogy(outfrb.grad_evals, abs(np.array(outfrb.f) - opt1) / opt2)
 
+plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
+plt.xlabel('Matrix Multiplies')
+plt.ylabel('Relative Objective Optimality Gap')
+plt.grid()
+plt.show()
 
+opt1 = opt
+if(abs(opt)<1e-7):
+    print("opt val is 0, so not doing relative error plot")
+    opt2 = 1.0
+else:
+    opt2 = opt
+plt.semilogy(out1f.times,abs(np.array(out1f.fx1)-opt1)/opt2)
+plt.semilogy(out2f.times, abs(np.array(out2f.fx1) - opt1) / opt2,':')
+plt.semilogy(out3op.times, abs(np.array(out3op.f) - opt1) / opt2,'--')
+plt.semilogy(outcp.times,abs(np.array(outcp.f) - opt1) / opt2)
+plt.semilogy(outTseng.times, abs(np.array(outTseng.f) - opt1) / opt2)
+plt.semilogy(outfrb.times, abs(np.array(outfrb.f) - opt1) / opt2)
+
+plt.grid()
+plt.xlabel('time (s)')
+plt.ylabel('Relative Objective Optimality Gap')
+plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb-pd'])
+plt.show()
 
 # ce_xx combines the constraint violations and the function suboptimality into
 # one measure for algorithm xx, as in c(x) defined in (60) on page 29 of the arXiv
@@ -409,22 +383,21 @@ f_frb = np.array(outfrb.f)
 ce_frb = np.array(outfrb.constraints) + (f_frb> opt) * (f_frb - opt)/opt
 
 # plot of log of c(x) for each method versus elapsed running time
-pltCombined = True
-if pltCombined:
-    plt.semilogy(out1f.times,ce_1f)
-    plt.semilogy(out2f.times,ce_2f)
-    plt.semilogy(out3op.times,ce_3o)
-    plt.semilogy(outcp.times,ce_cpBT)
-    plt.semilogy(outTseng.times,ce_tseng)
-    plt.semilogy(outfrb.times,ce_frb)
 
-    plt.xlabel('time (s)')
-    plt.ylabel('combined optimality+constraint criterion')
-    plt.grid()
+plt.semilogy(out1f.times,ce_1f)
+plt.semilogy(out2f.times,ce_2f)
+plt.semilogy(out3op.times,ce_3o)
+plt.semilogy(outcp.times,ce_cpBT)
+plt.semilogy(outTseng.times,ce_tseng)
+plt.semilogy(outfrb.times,ce_frb)
 
-    plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
+plt.xlabel('time (s)')
+plt.ylabel('combined optimality+constraint criterion')
+plt.grid()
 
-    plt.show()
+plt.legend(['ps1fbt', 'ps2fbt', 'ada3op','cp-bt','tseng-pd','frb-pd'])
+
+plt.show()
 
 def getResult(ce,tol):
     ce_flip = np.flip(ce,0)
@@ -433,66 +406,64 @@ def getResult(ce,tol):
     return result
 
 print("Printing results summary as in Table 2 (page 31)")
-results_summary = True
-if results_summary:
-    ce_tol = 1e-5
-    # find the first iteration where the algorithm produces an iterate below ce_tol
-    result_1f = getResult(ce_1f,ce_tol)
-    result_2f = getResult(ce_2f, ce_tol)
-    result_3o = getResult(ce_3o, ce_tol)
-    result_cpBT = getResult(ce_cpBT, ce_tol)
-    result_tseng = getResult(ce_tseng, ce_tol)
-    result_frb = getResult(ce_frb, ce_tol)
-    print("\n\n\n")
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    print("XXXXXXXXXXX Results XXXXXXXXX")
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    print("first iteration where the algorithm produces an iterate with error below "+str(ce_tol))
-    print("and stays below this tolerance for all subsequent iterations")
-    print("Iterations 1f: "+str(result_1f))
-    print("Iterations 2f: " + str(result_2f))
-    print("Iterations 3op: " + str(result_3o))
-    print("Iterations cp-bt: " + str(result_cpBT))
-    print("Iterations tseng: " + str(result_tseng))
-    print("Iterations frb: " + str(result_frb))
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
-    if result_1f<len(out1f.times):
-        print("Time 1f: " + str(out1f.times[result_1f]))
-    else:
-        print("1f greater than "+str(iter)+" iterations")
+ce_tol = 1e-5
+# find the first iteration where the algorithm produces an iterate below ce_tol
+result_1f = getResult(ce_1f,ce_tol)
+result_2f = getResult(ce_2f, ce_tol)
+result_3o = getResult(ce_3o, ce_tol)
+result_cpBT = getResult(ce_cpBT, ce_tol)
+result_tseng = getResult(ce_tseng, ce_tol)
+result_frb = getResult(ce_frb, ce_tol)
+print("\n\n\n")
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print("XXXXXXXXXXX Results XXXXXXXXX")
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print("first iteration where the algorithm produces an iterate with error below "+str(ce_tol))
+print("and stays below this tolerance for all subsequent iterations")
+print("Iterations 1f: "+str(result_1f))
+print("Iterations 2f: " + str(result_2f))
+print("Iterations 3op: " + str(result_3o))
+print("Iterations cp-bt: " + str(result_cpBT))
+print("Iterations tseng: " + str(result_tseng))
+print("Iterations frb: " + str(result_frb))
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
-    if result_2f < len(out2f.times):
-        print("Time 2f: " + str(out2f.times[result_2f]))
-    else:
-        print("2f greater than "+str(iter)+" iterations")
-    if result_3o < len(out3op.times):
-        print("Time 3op: " + str(out3op.times[result_3o]))
-    else:
-        print("3op greater than "+str(iter)+" iterations")
+if result_1f<len(out1f.times):
+    print("Time 1f: " + str(out1f.times[result_1f]))
+else:
+    print("1f greater than "+str(iter)+" iterations")
 
-    if result_cpBT < len(outcp.times):
-        print("Time cp-bt: " + str(outcp.times[result_cpBT]))
-    else:
-        print("cp-bt greater than "+str(iter)+" iterations")
+if result_2f < len(out2f.times):
+    print("Time 2f: " + str(out2f.times[result_2f]))
+else:
+    print("2f greater than "+str(iter)+" iterations")
+if result_3o < len(out3op.times):
+    print("Time 3op: " + str(out3op.times[result_3o]))
+else:
+    print("3op greater than "+str(iter)+" iterations")
 
-    if result_tseng < len(outTseng.times):
-        print("Time tseng: " + str(outTseng.times[result_tseng]))
-    else:
-        print("tseng greater than "+str(iter)+" iterations")
+if result_cpBT < len(outcp.times):
+    print("Time cp-bt: " + str(outcp.times[result_cpBT]))
+else:
+    print("cp-bt greater than "+str(iter)+" iterations")
 
-    if result_frb < len(outfrb.times):
-        print("Time frb: " + str(outfrb.times[result_frb]))
-    else:
-        print("frb greater than "+str(int(iter))+" iterations")
+if result_tseng < len(outTseng.times):
+    print("Time tseng: " + str(outTseng.times[result_tseng]))
+else:
+    print("tseng greater than "+str(iter)+" iterations")
 
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+if result_frb < len(outfrb.times):
+    print("Time frb: " + str(outfrb.times[result_frb]))
+else:
+    print("frb greater than "+str(int(iter))+" iterations")
+
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
 
 #compare z versus fx1 for ps1f and ps2f
-zcomp = True
-if zcomp:
-    algo.compareZandX(out1f,"1f")
-    algo.compareZandX(out2f,"2f")
+print("Comparing performance of fx1 and fz for ps1fbt and ps2fbt")
+algo.compareZandX(out1f,"1f")
+algo.compareZandX(out2f,"2f")

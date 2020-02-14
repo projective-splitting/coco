@@ -4,11 +4,19 @@ import time
 
 class Results:
     '''
-    A results struct to return from each function
+    A results struct to hold the results returned from each algorithm function.
+    Empty now, will be populated when the function returns.
     '''
     pass
 
 class InitPoint:
+    '''
+    Initial point to start an algorithm.
+    ps1fbt needs x1, x2, z, and w to be intialized.
+    ps2fbt needs z and w.
+    The other algorithms, cp-bt, Tseng, and FRB, are initialized using
+    these parameters.
+    '''
     def __init__(self,x1,x2,z,w):
         self.x1 = x1
         self.x2 = x2
@@ -27,25 +35,31 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
     The algorithm proposed in this paper. projective splitting with one-forward-step.
     This variant features backtracking on the smooth loss.
     parameters:
-        d: dimension of the optimization variable/vector
-        iter: number of iterations to run the method. Note that there is no stopping criterion
-              implemented, so you must set iter to terminate the method.
+        theFunc: method of one numpy array input to evaluate the objective function
+        theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
+        theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
+        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        init: init point, an object of the class InitPoint
+        iter: num iterations
         alpha: averaging parameter
-        rho1: stepsize
-        rho2: stepsize
-        theProx1: a function with two arguments, the first is the input to the prox,
-                  the second is the stepsize. It is the prox of f1
-        theGrad: a function of one argument, returns the gradient of the smooth term
-        theProx2: a function with two arguments, the first is the input to the prox,
-                  the second is the stepsize. It is the prox of f2
-        theFunc: returns the function value of the entire objective
-        gamma: primal-dual parameter
-        hyper_resid: (portfolio optimiz) function of one parameter, computes the error/residual w.r.t.
-        the hyperplane constraint
-        stepDecrease: how much to decrease the stepsize by in the backtracking linesearch, eg: 0.7
-        equalRho: set stepsizes to be equal (non-backtracked equal to backtracked)
-        verbose: whether to print out iteration number
-        init: Initial point. A structure with four fields: x1, x2, z, and w.
+        rho1, rho2: stepsize
+        gamma: primal-dual constant
+        hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+        stepDecrease: how much to decrease the stepsize by in backtracking linesearch
+        stepIncrease: how much to increase the stepsize prior to backtracking
+        equalRho: If True, set the nonbacktracked stepsizes equal to the backtracked ones
+        verbose: If true, print iteration number
+    Outputs:
+        fz: list of objective function evaluations per iteration at z
+        fx1:list of objective function evaluations per iteration at x1
+        fx2: empty list, not used in this function, included for consistency wrt compareZandX() defined below
+        z: Final value of z
+        x1: Final value of x1
+        x2: Final value of x2
+        rhos: list of stepsizes used per iteration
+        grad_evals: list counting cumulative gradient evaluations
+        times: list counting cumulative elapsed times per iteration
+        constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
 
     x1 = init.x1
@@ -82,6 +96,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
             factor = min([maxFac,stepIncrease])
             rho1 = factor*rho1
 
+        # call backtracking subroutine
         [x1,y1,b1,rho1,grad_evalsNew,yhat] = bt_1f(alpha,x1,z,w,rho1,b1,theProx1,theGrad,
                                                    y1,phi_1,thetaHat,wHat,stepDecrease)
         grad_evalsSofar +=grad_evalsNew
@@ -94,6 +109,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
         x2 = theProx2(t2,rho2)
         y2 = (1 / rho2) * (t2 - x2)
 
+        # project to hplane
         phi = (z - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + w)
         gradz = y1 + y2
         gradw = x1 - x2
@@ -134,7 +150,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
 
 def bt_1f(alpha,x1,z,w,rho,b_old,theProx1,theGrad,y_old,phiOld,thetaHat,wHat,stepDecrease):
     '''
-        backtracking procedure for ps1f. Internal subroutine of PS1f_bt().
+        backtracking procedure for ps1f. Internal subroutine of PS1f_bt() and PS1f_bt_comp().
     '''
 
     keepBTing = True
@@ -177,6 +193,30 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     Essentially the same as PS1f_bt() defined above, however this variant allows for composition
     with a linear operator as in the rare feature selection problem. So it solves
     min_x f_1(Gx)+f_2(x)+h_2(x)
+    parameters:
+        theFunc: method of one numpy array input to evaluate the objective function
+        theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
+        theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
+        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        init: init point, an object of the class InitPoint
+        iter: num iterations
+        alpha2: averaging parameter
+        rho1, rho2: stepsize
+        gamma: primal-dual constant
+        stepDecrease: how much to decrease the stepsize by in backtracking linesearch
+        stepIncrease: how much to increase the stepsize prior to backtracking
+        equalRhos: If True, set the nonbacktracked stepsizes equal to the backtracked ones
+        G: method for computing the linear operator defined in the objective
+        Gt: method for computing the transpose or adjoint of the linear operator
+    Outputs:
+        fz: list of objective function evaluations per iteration at z
+        fx2:list of objective function evaluations per iteration at x2
+        fx1: empty list, not used in this function, included for consistency wrt compareZandX() defined below
+        z: Final value of z
+        x1: Final value of x1
+        x2: Final value of x2
+        rhos: list of stepsizes used per iteration
+        times: list counting cumulative elapsed times per iteration
     '''
 
     z = init.z
@@ -257,11 +297,36 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
 def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
-            equalRho_2f=True,verbose=True):
+            equalRho=True,verbose=True):
     '''
-    projective splitting with two forward steps and backtracking
-    same parameters as described in PS1f_bt() with the addition of Delta
-    which defaults to 1.0 and is used in the backtracking procedure
+    projective splitting with two forward steps and backtracking.
+    parameters:
+        theFunc: method of one numpy array input to evaluate the objective function
+        theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
+        theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
+        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        init: init point, an object of the class InitPoint
+        iter: num iterations
+        rho1, rho2: stepsize
+        gamma: primal-dual constant
+        Delta: constant used in the backtracking linesearch
+        stepDecrease: how much to decrease the stepsize by in backtracking linesearch
+        stepIncrease: how much to increase the stepsize prior to backtracking
+        equalRho: If True, set the nonbacktracked stepsizes equal to the backtracked ones
+        hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+        G: method for computing the linear operator defined in the objective
+        Gt: method for computing the transpose or adjoint of the linear operator
+    Outputs:
+        fz: list of objective function evaluations per iteration at z
+        fx2:list of objective function evaluations per iteration at x2
+        fx1: empty list, not used in this function, included for consistency wrt compareZandX() defined below
+        z: Final value of z
+        x1: Final value of x1
+        x2: Final value of x2
+        rhos: list of stepsizes used per iteration
+        grad_evals: list counting cumulative gradient evaluations
+        times: list counting cumulative elapsed times per iteration
+        constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
     z = init.z
     w = init.w
@@ -284,7 +349,7 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
         gradEvals.append(gradsRunning)
         rhosBT.append(rho1)
 
-        if equalRho_2f:
+        if equalRho:
             rho2 = rho1
 
         t2 =  z - rho2 * w
@@ -334,6 +399,31 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     This is the same as PS2f_bt() above except it allows for composition with a linear term
     as in the rare feature selection problem and so can solve problems of the form
     min_x f_1(G_1x)+f_2(x)+h_2(x)
+    parameters:
+        theFunc: method of one numpy array input to evaluate the objective function
+        theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
+        theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
+        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        init: init point, an object of the class InitPoint
+        iter: num iterations
+        rho1, rho2: stepsize
+        gamma: primal-dual constant
+        Delta: constant used in the backtracking linesearch
+        stepDecrease: how much to decrease the stepsize by in backtracking linesearch
+        stepIncrease: how much to increase the stepsize prior to backtracking
+        equalRho: If True, set the nonbacktracked stepsizes equal to the backtracked ones
+        hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+    Outputs:
+        fz: list of objective function evaluations per iteration at z
+        fx1:list of objective function evaluations per iteration at x1
+        fx2: empty list, not used in this function, included for consistency wrt compareZandX() defined below
+        z: Final value of z
+        x1: Final value of x1
+        x2: Final value of x2
+        rhos: list of stepsizes used per iteration
+        grad_evals: list counting cumulative gradient evaluations
+        times: list counting cumulative elapsed times per iteration
+        constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
 
     z = init.z
@@ -419,6 +509,28 @@ def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease 
             lip_const = 0.0,iter=1000,gamma=1.0,tau=0.7,hyper_resid=-1,verbose=True):
     '''
         Adaptive version of three operator splitting (ada3po in the paper)
+        Pedregosa, F., Gidel, G.: Adaptive three-operator splitting. Preprint 1804.02339, ArXiV
+        (2018)
+        Paramaters
+        - proxg: method to compute the prox w.r.t. the function g
+        - gradf: method to compute the gradient w.r.t. the smooth function f
+        - f_smooth: returns the value of the smooth function f
+        - theFunc: method computes the objective function
+        - proxh: method computes the prox w.r.t. h
+        - f_smooth_smart: smart routine for using precomputed matrix multiply to compute the smooth function value
+        - init: initial point, object of class InitPoint
+        - stepIncrease: how much to increase the stepsize by at each iteration
+        - lipConst: Lispchitz constant of g
+        - iter: total iterations to run
+        - gamma: initial stepsize
+        - tau: how much to decrease the stepsize in the backtracking linesearch
+        - hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+        Outputs:
+           f: list of objective function evaluations per iteration at x
+           x: Final value of x
+           grad_evals: list counting cumulative gradient evaluations
+           times: list counting cumulative elapsed times per iteration
+           constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
 
     z = init.z
@@ -489,7 +601,7 @@ def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease 
 
 
 def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.99,
-         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.0,verbose=True,K=-1,Kstar=-1):
+         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.1,verbose=True,K=[],Kstar=[]):
     '''
         Chambolle-Pock Primal Dual splitting with backtracking
         this algorithm solves the following optimization problem:
@@ -502,8 +614,29 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
         -> fstar(y) = ind(simplex)
         -> gstar(-y) = ind(hyperplane constraint, <m,y> >= r), which means gstar(t) = ind(hyperplane constraint <m,t> <= -r)
         -> h(y) = 0.5*y^T*Q*y
-        # TODO:
-        - Handle the matrix, as in rare features
+        Paper reference:
+        Malitsky, Y., Pock, T.: A first-order primal-dual algorithm with
+        linesearch. SIAM Journal on Optimization 28(1), 411-432 (2018)
+          proxfstar: method for computing prox of fstar
+          gradH: method for computing gradient w.r.t. H
+          proxg: method for computing prox w.r.t. g
+          Func: method for computing the objective function
+          init: init point, object from class InitPoint
+          iter: number of iterations to run
+          tau: initial stepsize
+          delta: parameter used in the linesearch
+          beta: primal dual tuning parameter
+          mu: how much to decrease the stepsize in the linesearch
+          hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+          stepInc: how much to increase the stepsize before starting new linesearch
+          K: method for computing (the adjoint of) the linear operator in objective. If K is the identity, set K to []
+          Kstar: method for computing the linear operator in the objective, if K is identity, set to [].
+        Output:
+          f: list of objective function evaluations per iteration at y
+          y: Final value of y
+          grad_evals: list counting cumulative gradient evaluations
+          times: list counting cumulative elapsed times per iteration
+          constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
 
 
@@ -512,7 +645,7 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
     fy = []
     [yFunc, Ay] = hfunc(y)
 
-    if K ==-1:
+    if K == []:
         Kstary = y
     else:
         Kstary = Kstar(y)
@@ -542,14 +675,14 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
             theta = taunext/tau
             sigmanext = beta*taunext
             xbar = xnext + theta*(xnext - x)
-            if K == -1:
+            if K == []:
                 Kxbar = xbar
             else:
                 Kxbar = K(xbar)
 
             ynext = proxfstar(y+sigmanext*(Kxbar - gradHy),sigmanext)
             [yFuncNext,Ay] = hfunc(ynext)
-            if K ==-1:
+            if K == []:
                 KstarYnext = ynext
             else:
                 KstarYnext = Kstar(ynext)
@@ -606,6 +739,32 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
     proxf and proxg are projections onto these sets.
     So we use moreau's decomposition to evaluation proxfstar and proxgstar
     note that the linesearch exit condition must become: alpha||Axbar - Ax||_P <= delta||xbar-x||_{P^{-1}}
+    Paper reference:
+    Combettes, P.L., Pesquet, J.C.: Primal-dual splitting algorithm for solving inclusions
+    with mixtures of composite, Lipschitzian, and parallel-sum type monotone operators.
+
+    Parameters
+      proxfstar: method for computing prox of fstar
+      proxgstar: method for computing prox of gstar
+      gradh: method for computing gradient w.r.t. H
+      theFunc: method for computing the objective function
+      init: init point, object from class InitPoint
+      iter: number of iterations to run
+      alpha: initial stepsize
+      theta: parameter used in the linesearch
+      gamma1,gamma2: primal dual tuning parameters
+      stepDecrease: how much to decrease the stepsize in the linesearch
+      hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+      stepIncrease: how much to increase the stepsize before starting new linesearch
+      G: method for computing (the adjoint of) the linear operator in objective. If G is the identity, set G to []
+      Gt: method for computing the linear operator in the objective, if G is identity, set to [].
+    Output:
+      f: list of objective function evaluations per iteration at x
+      x: Final value of x
+      grad_evals: list counting cumulative gradient evaluations
+      times: list counting cumulative elapsed times per iteration
+      constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
+
     '''
 
     x = init.z
@@ -697,7 +856,7 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
 
 def theBigProx(a, b, c, proxfstar,proxgstar,alpha,gamma1,gamma2):
     '''
-        internal function for tseng_product()
+        internal function for tseng_product() and for_reflect_back()
     '''
     out1 = proxfstar(a, gamma1*alpha)
     out2 = proxgstar(b, gamma2*alpha)
@@ -714,6 +873,30 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
         as we did for Tseng-pd.
         as with Tseng-pd we use the variable metric: diag(gamma1,gamma2,1)
         note that the backtrack check condition is now lambda||B p^{k+1} - B p^k||<=0.5*delta||p^{k+1}-p^k||_{P^{-1}}
+        Paper Reference:
+        Malitsky, Y., Tam, M.K.: A forward-backward splitting method for monotone inclusions
+        without cocoercivity. arXiv preprint arXiv:1808.04162 (2018)
+        Parameters
+          proxfstar: method for computing prox of fstar
+          proxgstar: method for computing prox of gstar
+          gradh: method for computing gradient w.r.t. H
+          theFunc: method for computing the objective function
+          init: init point, object from class InitPoint
+          iter: number of iterations to run
+          lam: initial stepsize
+          delta: parameter used in the linesearch
+          gamma0,gamma1: primal dual tuning parameters
+          stepDecrease: how much to decrease the stepsize in the linesearch
+          hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+          stepIncrease: how much to increase the stepsize before starting new linesearch
+          G: method for computing (the adjoint of) the linear operator in objective. If G is the identity, set G to []
+          Gt: method for computing the linear operator in the objective, if G is identity, set to [].
+        Output:
+          f: list of objective function evaluations per iteration at x
+          x: Final value of x
+          grad_evals: list counting cumulative gradient evaluations
+          times: list counting cumulative elapsed times per iteration
+          constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
     '''
 
 
@@ -844,6 +1027,9 @@ def proxL1_v2(a,thresh):
     return x
 
 def projLInf(x,thrsh):
+    '''
+    Projection onto the ell_infty ball
+    '''
     return (x>=-thrsh)*(x<=thrsh)*x + (x>thrsh)*thrsh - (x<-thrsh)*thrsh
 
 def projSimplex(a):
@@ -921,6 +1107,9 @@ def runCVX_portfolio(d,Q,m,r):
 
 
 def compareZandX(out,alg):
+    '''
+    Plot a comparison of F(z) versus F(x_1) versus F(x_2) for ps1fbt and ps2fbt
+    '''
     plt.plot(out.times,out.fz)
     leg = ['fz']
     if len(out.fx1)>0:

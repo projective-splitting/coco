@@ -2,13 +2,12 @@
 This file runs the group logistic regression experiment in the paper
 "Single Forward Step Projective Splitting: Exploiting Cocoercivity", Patrick R. Johnstone
 and Jonathan Eckstein, arXiv:1902.09025.
-Various parameters can be set from the command line.
-To run:(from the directory containing this file)
+To run: (navigate to the directory containing this file)
 $python run_group_lr.py
 This runs with default parameters.
 To see what parameters can be set from the command line, run
 $python run_portfolio.py -h
-This code has been tested with python2.7 and python3.5 and requires numpy.
+This code has been tested with python2.7 and python3.5.
 '''
 import numpy as np
 from matplotlib import pyplot as plt
@@ -55,7 +54,7 @@ betacp = parser.parse_args().betacp
 
 
 
-if dataset =='colitis':
+if dataset == 'colitis':
     print("Colitis dataset")
     dataFolder = 'data/colitis/'
 else:
@@ -69,26 +68,22 @@ y = np.load(dataFolder+'y.npy',allow_pickle=True)
 Partitions = np.load(dataFolder+'Partition.npy',allow_pickle=True)
 print("Data loaded successfully.")
 
-
 [n,d] = A.shape
 
 print("number of genes: "+str(d))
 print("number of groups: "+str(len(Partitions)))
 print("av genes per group: "+str(sum([len(parts) for parts in Partitions])/float(len(Partitions))))
 
-
-
 print("normalizing columns of A to unit norm")
 col_norms = np.linalg.norm(A, axis=0)
 invdiago = np.diag(1/col_norms)
 A = A.dot(invdiago)
 
-# adding a column of all ones to deal with the offset
+# adding a column of all ones to deal with the offset/intercept
 AT = np.concatenate([A.T, np.ones([1, n])])
 A = AT.T
 
 lam2s = lam2*np.ones(len(Partitions))
-
 
 # call subroutine create the plug-in functions for gradients, proxes,
 # and function evals
@@ -99,12 +94,12 @@ lam2s = lam2*np.ones(len(Partitions))
 
 
 def print_results(alg,x,time2run):
-    print("===results summary for " +alg+"===")
-    print("running time "+str(time2run))
-    print(alg+" training error: "+str(gp.training_error_rate(A, x, y)))
-    print(alg+" nnz: "+str(sum(abs(x)>1e-5)))
+    print("===results summary for " + alg + "===")
+    print("running time "+ str(time2run))
+    print(alg+" training error: " + str(gp.training_error_rate(A, x, y)))
+    print(alg + " nnz: " + str(sum(abs(x)>1e-5)))
     group_norms = gp.nnz_groups(Partitions,x)
-    print(alg+" nnz groups: "+str(sum(group_norms>1e-5)))
+    print(alg + " nnz groups: " + str(sum(group_norms>1e-5)))
     print("=== end results summary===")
 
 
@@ -113,7 +108,6 @@ init = algo.InitPoint([],[],np.zeros(d+1),[])
 out3op = algo.adap3op(group_prox,theGrad_smart,lrFunc,theFunc,prox_L1,lrFunc_smart,
             init, stepIncrease = step_increase,iter=iter,lip_const = lam1)
 print_results("ada3op",out3op.x,out3op.times[-1])
-
 
 
 print("running 1fbt...")
@@ -129,6 +123,7 @@ out2f = algo.PS2f_bt(theFunc,theGrad,prox_L1,group_prox,init,iter=iter,
                      gamma=gamma2f,stepIncrease = step_increase)
 
 print_results("ps2fbt",out2f.x1,out2f.times[-1])
+
 
 print("running cp-bt")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),[],[])
@@ -158,20 +153,17 @@ print("total running time: "+str(tendFinal - tActualStart))
 
 print("plotting...")
 
-plot_steps = True
-if plot_steps:
-    markFreq=100
-    markerSz = 10
-    plt.semilogy(out1f.rhos)
-    plt.semilogy(out2f.rhos,':')
+print("plotting stepsizes for ps1fbt and ps2fbt")
+markFreq=100
+markerSz = 10
+plt.semilogy(out1f.rhos)
+plt.semilogy(out2f.rhos,':')
+plt.legend(['ps1fbt','ps2fbt'])
+plt.title('discovered stepsizes: group log reg')
+plt.xlabel('iterations')
+plt.grid()
 
-
-    plt.legend(['ps1fbt','ps2fbt'])
-    plt.title('discovered stepsizes: group log reg')
-    plt.xlabel('iterations')
-    plt.grid()
-
-    plt.show()
+plt.show()
 
 
 
@@ -180,49 +172,44 @@ opt = min(np.concatenate([np.array(out3op.f),np.array(out1f.fx1),np.array(out2f.
                              np.array(outcp.f),np.array(outFRB.f)]))
 
 
-plot_raw = True
-if(plot_raw):
+print("plotting function values versus elapsed time")
+plt.plot(out1f.times,out1f.fx1)
+plt.plot(out2f.times,out2f.fx1)
+plt.plot(out3op.times,out3op.f)
+plt.plot(outcp.times,outcp.f)
+plt.plot(outTseng.times,outTseng.f)
+plt.plot(outFRB.times,outFRB.f)
 
-    plt.plot(out1f.times,out1f.fx1)
-    plt.plot(out2f.times,out2f.fx1)
-    plt.plot(out3op.times,out3op.f)
-    plt.plot(outcp.times,outcp.f)
-    plt.plot(outTseng.times,outTseng.f)
-    plt.plot(outFRB.times,outFRB.f)
-
-    plt.plot(out3op.times,opt*np.ones(len(out3op.times)))
-    plt.legend(['1fbt','2fbt','3opBT','cpbt','tseng','frb'])
-    plt.xlabel('time (s) excluding time to evaluate objective')
-    plt.title("Objective Function values versus elapsed time")
-    plt.show()
-
-logPlot = True
-
-if(logPlot):
-    markFreq = 500
-    markerSz = 10
-    plt.semilogy(out1f.times,(np.array(out1f.fx1) - opt)/opt)
-    plt.semilogy(out2f.times,(np.array(out2f.fx1) - opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
-
-    plt.semilogy(out3op.times, (np.array(out3op.f) - opt)/opt,'-v',markevery = markFreq,markersize =markerSz)
-
-    plt.semilogy(outcp.times, (np.array(outcp.f) - opt) / opt,'s-',markevery = markFreq,markersize =markerSz)
-    plt.semilogy(outTseng.times, (np.array(outTseng.f) - opt) / opt,'x-',markevery = markFreq,markersize =markerSz)
-    plt.semilogy(outFRB.times,(np.array(outFRB.f) - opt) / opt,'D-',markevery = markFreq,markersize =markerSz)
+plt.plot(out3op.times,opt*np.ones(len(out3op.times)))
+plt.legend(['1fbt','2fbt','3opBT','cpbt','tseng','frb'])
+plt.xlabel('time (s) excluding time to evaluate objective')
+plt.title("Objective Function values versus elapsed time")
+plt.show()
 
 
-    plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb'],fontsize='large')
-    #plt.ylabel('relative error objective function gap')
-    plt.xlabel('time (s) excluding time to evaluate objective',fontsize='large')
-    plt.grid(True)
-    plt.show()
+print("plotting log of relative error to optimality of function values versus time")
+markFreq = 500
+markerSz = 10
+plt.semilogy(out1f.times,(np.array(out1f.fx1) - opt)/opt)
+plt.semilogy(out2f.times,(np.array(out2f.fx1) - opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
+
+plt.semilogy(out3op.times, (np.array(out3op.f) - opt)/opt,'-v',markevery = markFreq,markersize =markerSz)
+
+plt.semilogy(outcp.times, (np.array(outcp.f) - opt) / opt,'s-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outTseng.times, (np.array(outTseng.f) - opt) / opt,'x-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outFRB.times,(np.array(outFRB.f) - opt) / opt,'D-',markevery = markFreq,markersize =markerSz)
 
 
-#compare z versus fx1 for ps1f and ps2f
-zcomp = True
-if zcomp:
-    algo.compareZandX(out1f,"1f")
-    algo.compareZandX(out2f,"2f")
+plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb'],fontsize='large')
+#plt.ylabel('relative error objective function gap')
+plt.xlabel('time (s) excluding time to evaluate objective',fontsize='large')
+plt.grid(True)
+plt.show()
+
+
+print("plotting comparison of fz and fx1 for ps1fbt and ps2fbt")
+algo.compareZandX(out1f,"1f")
+algo.compareZandX(out2f,"2f")
 
 
 

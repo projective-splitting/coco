@@ -8,7 +8,7 @@ $python run_rare_feature.py
 This runs with default parameters.
 To see what parameters can be set from the command line, run
 $python run_rare_feature.py -h
-This code has been tested with python2.7 and python3.5 and requires numpy and scipy.
+This code has been tested with python2.7 and python3.5.
 '''
 
 import numpy as np
@@ -19,10 +19,6 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as ln
 import argparse
 
-'''
-Feb 2020 plan
-- XX should I replace Stranspose with S.T?
-'''
 tAbsolutestart = time.time()
 parser = argparse.ArgumentParser(description='Rare Feature Selection Experiment')
 
@@ -88,7 +84,6 @@ S = sp.hstack([onesCol,S],format='csc')
 onesCol = np.ones([n_test, 1])
 onesCol = sp.csc_matrix(onesCol)
 S_test = sp.hstack([onesCol, S_test], format='csc')
-
 
 print("The offset is replicated in gamma.")
 print("We append a column and row to H of all zeros except a one in the upper left corner")
@@ -228,10 +223,6 @@ print("================")
 
 tol = 1e-3
 
-
-
-
-
 def getMSE(x):
     MSEtrain = (1/(float(n_train))) * np.linalg.norm(y_train - S.dot(S_A.dot(x)), 2) ** 2
     MSEtest = (1/(float(n_test))) * np.linalg.norm(y_test - S_test.dot(S_A.dot(x)), 2) ** 2
@@ -273,8 +264,6 @@ print("================")
 
 opt = min(np.concatenate([np.array(out1f.fx2), np.array(out2f.fx2), np.array(outcp.f), np.array(outtseng.f),
                              np.array(outfrb.f)]))
-
-
 
 markFreq = 2000
 markerSz = 10
