@@ -35,6 +35,8 @@ parser.add_argument('--gammatg',type=float,default=1.0,dest='gammatg',
                     help = 'primal-dual constant for Tseng-pd',metavar='gammatg')
 parser.add_argument('--verbose',type=int,default=0,dest='verbose',
                     help = 'set to 1 to print iteration number, else 0',metavar='verbose')
+parser.add_argument('--runCVX',type=int,default=0,dest='runCVX',
+                    help = 'set to 1 to run cvxpy',metavar='runCVX')
 
 # d is the problem dimension, size of the vector x in the Markovitz optimization problem
 # default to d = 1000
@@ -43,7 +45,7 @@ deltar = parser.parse_args().deltar
 iter = parser.parse_args().iterations
 verbose = parser.parse_args().verbose
 
-# These parameters are important tuning parametesr which effect practical performance
+# These parameters are important tuning parameters which effect practical performance
 # see table 1 on page 30 of the arXiv paper for how we set it for the problems
 # in that paper
 gamma1f = parser.parse_args().gamma1f
@@ -51,6 +53,7 @@ gamma_frb = parser.parse_args().gammafrb
 gamma2f = parser.parse_args().gamma2f
 betacp = parser.parse_args().betacp
 gamma_tg = parser.parse_args().gammatg
+runCVX = parser.parse_args().runCVX
 
 
 
@@ -154,7 +157,7 @@ print("number of iterations (same for each method): "+str(iter))
 # set to true to run cvx. Only good for d<=1000 on my machine otherwise very slow
 # also, you must have CVXPY properly installed
 # finally, uncomment import cvxpy as cvx from the algorithms module
-runCVX = False
+
 if(runCVX):
     print("running cvx...")
     tstart_cvx = time.time()

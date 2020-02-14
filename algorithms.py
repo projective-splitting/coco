@@ -121,6 +121,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
     out = Results()
     out.fz = fz
     out.fx1 = fx1
+    out.fx2 = []
     out.z = z
     out.x1 = x1
     out.x2 = x2
@@ -243,6 +244,7 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
         fz.append(theFunc(z))
 
     out = Results()
+    out.fx1 = []
     out.fx2 = fx2
     out.fz = fz
     out.times = np.array(times[1:len(times)])-times[1]
@@ -316,6 +318,7 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
     out = Results()
     out.fz = fz
     out.fx1 = fx1
+    out.fx2 = []
     out.z = z
     out.x1 = x1
     out.x2 = x2
@@ -385,6 +388,7 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
     out = Results()
     out.fz = fz
+    out.fx1 = []
     out.fx2 = fx2
     out.x1 = x1
     out.x2 = x2
@@ -909,6 +913,7 @@ def runCVX_portfolio(d,Q,m,r):
     run CVX for the portfolio problem.
     '''
     print("setting up cvx...")
+    import cvxpy as cvx
     x_cvx = cvx.Variable(d)
     f = 0.5*cvx.quad_form(x_cvx,Q)
     constraints = [x_cvx>=0,cvx.sum_entries(x_cvx)==1.0,m.T*x_cvx>=r]
@@ -922,9 +927,16 @@ def runCVX_portfolio(d,Q,m,r):
 
 
 def compareZandX(out,alg):
-    plt.plot(out.times,out.fz,out.times,out.fx1)
+    plt.plot(out.times,out.fz)
+    leg = ['fz']
+    if len(out.fx1)>0:
+        plt.plot(out.times,out.fx1)
+        leg.append('fx1')
+    if len(out.fx2)>0:
+        plt.plot(out.times,out.fx2)
+        leg.append('fx2')
     plt.xlabel("time (s)")
     plt.ylabel("function value")
     plt.title(alg)
-    plt.legend(['fz','fx1'])
+    plt.legend(leg)
     plt.show()

@@ -77,13 +77,6 @@ def LRgrad_smart_alt(A,y,Ax):
 
 #============ objective function evals ===================
 
-#def LRfunc(A,x,y):
-#    Ax = A.dot(x)
-#    score = -y * Ax
-#    return sum(np.log(1+np.exp(score)))
-
-#f=LRfunc(A,x,y) => [f,_] = LRfunc_smart(A,x,y)
-
 def LRfunc_smart(A,x,y):
     Ax = A.dot(x)
     score = -y * Ax
