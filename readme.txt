@@ -17,10 +17,9 @@ data/trip_advisor
 In addition to implementations of several variants of projective splitting, this also includes
 implementations of
 - adaptive three operator splitting,
-
-- Chambolle-Pock primal dual spltting,
   [2] Pedregosa, F., Gidel, G.: Adaptive three-operator splitting. Preprint 1804.02339, ArXiV
-    (2018)
+  (2018)
+- Chambolle-Pock primal dual spltting,
   [3] Malitsky, Y., Pock, T.: A first-order primal-dual algorithm with
    linesearch. SIAM Journal on Optimization 28(1), 411–432 (2018)
 - Tseng's method applied to the primal-dual inclusion,
