@@ -2,40 +2,45 @@ This is the python code for running the experiments in Section 6 of
 
 https://arxiv.org/pdf/1902.09025.pdf
 
-[1] Johnstone, P. R., and Eckstein, J.: "Single-forward-step projective splitting: Exploiting cocoercivity",
-arXiv preprint arXiv:1902.09025 (2019).
+[1] Johnstone, P. R., and Eckstein, J.: "Single-forward-step projective 
+splitting: Exploiting cocoercivity", arXiv preprint arXiv:1902.09025 (2019).
 
 The TripAdvisor data were kindly shared with us by Xiaohan Yan and Jacob Bien.
 
-[2] Yan, X., and Bien, J.: Rare Feature Selection in High Dimensions. arXiv preprint
-arXiv:1803.06675 (2018).
+[2] Yan, X., and Bien, J.: Rare Feature Selection in High Dimensions. arXiv 
+preprint arXiv:1803.06675 (2018).
 
-The trip advisor data in R and Python format is also available at https://github.com/yanxht/TripAdvisorData.  
-In this repository, it is in Python format in the directory data/trip_advisor
+The trip advisor data in R and Python format is also available at 
+https://github.com/yanxht/TripAdvisorData.  In this repository, it is in Python 
+format in the directory data/trip_advisor
 
-In addition to implementations of several variants of projective splitting, this also includes
-implementations of
+In addition to implementations of several variants of projective splitting, 
+this repository also includes implementations of
 - adaptive three-operator splitting,
-  [3] Pedregosa, F., Gidel, G.: Adaptive three-operator splitting. arXiv Preprint arXiv:1804.02339
-      (2018)
+  [3] Pedregosa, F., Gidel, G.: Adaptive three-operator splitting. arXiv 
+      preprint arXiv:1804.02339 (2018)
 - Chambolle-Pock primal dual spltting,
-  [4] Malitsky, Y., Pock, T.: A first-order primal-dual algorithm with linesearch. SIAM Journal on 
-      Optimization 28(1):411–432 (2018)
+  [4] Malitsky, Y., Pock, T.: A first-order primal-dual algorithm with 
+      linesearch. SIAM Journal on       Optimization 28(1):411–432 (2018)
 - Tseng's method applied to the primal-dual inclusion,
-  [5] Combettes, P.L., Pesquet, J.C.: Primal-dual splitting algorithm for solving inclusions with 
-      mixtures of composite, Lipschitzian, and parallel-sum type monotone operators.  Set-Valued 
-      and Variational Analysis volume 20(2):307–330 (2012)
+  [5] Combettes, P.L., Pesquet, J.C.: Primal-dual splitting algorithm for 
+      solving inclusions with mixtures of composite, Lipschitzian, and 
+      parallel-sum type monotone operators.  Set-Valued and Variational 
+      Analysis volume 20(2):307–330 (2012)
 - forward-reflected-backward splitting,
-  [6] Malitsky, Y., Tam, M.K.: A forward-backward splitting method for monotone inclusions without 
-      cocoercivity. arXiv preprint arXiv:1808.04162 (2018)
+  [6] Malitsky, Y., Tam, M.K.: A forward-backward splitting method for 
+      monotone inclusions without cocoercivity. arXiv preprint 
+      arXiv:1808.04162 (2018)
 
 To run the experiments in [1]:
-1. Ensure that Python and the Python packages numpy, scipy, matplotlib, and argpass are installed 
-   on your system.
-2. Navigate to the directory you would like to save the data and issue the shell command 
+1. Ensure that Python and the Python packages numpy, scipy, matplotlib, 
+   and argpass are installed on your system.
+2. Navigate to the directory you would like to save the data and issue 
+   the shell command 
    $ git clone https://github.com/projective-splitting/coco.git
-   Or if you're on a Windows or Mac system, click download, download the zip file, and
-   unzip it in the directory in which you want locate the code
+   Or, if you're on a Windows or Mac system, click download, download the 
+   zip file, and unzip it in the directory in which you want locate the 
+   code
 3. Run Python from that directory as follows:
 
     To run the portfolio optimization experiment:
@@ -47,10 +52,12 @@ To run the experiments in [1]:
     To run the rare feature selection experiment:
     $ python run_rare_feature.py
 
-  These scripts will run one of the parameter settings studied in the paper.  Other parameters 
-  may be tested by modifying the parameters from the command line.
+  These scripts will run one of the parameter settings studied in the paper.  
+  Other parameter values may be tested by modifying the parameters from 
+  the command line.
 
-Various parameters can be set from the command line.  To find out which parameters can be set, run
+Various parameters can be set from the command line.  To find out which 
+parameters can be set, run the commands
 
 $ python run_portfolio.py -h
 $ python run_group_lr.py -h
