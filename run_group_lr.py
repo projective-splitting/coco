@@ -39,7 +39,7 @@ parser.add_argument('--gammatg',type=float,default=1e3,dest='gammatg',
 parser.add_argument('--gammafrb',type=float,default=1e3,dest='gammafrb',
                     help = 'tuning parameter for FRB',metavar='gammafrb')
 parser.add_argument('--betacp',type=float,default=1e1,dest='betacp',
-                    help = 'tuning parameter for cp-bt',metavar='betacp')
+                    help = 'tuning parameter beta for cp-bt',metavar='betacp')
 
 lam1 = parser.parse_args().lam1
 lam2 = parser.parse_args().lam2

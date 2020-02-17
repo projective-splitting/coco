@@ -37,7 +37,7 @@ parser.add_argument('--gammatg',type=float,default=1e0,dest='gammatg',
 parser.add_argument('--gammafrb',type=float,default=1e0,dest='gammafrb',
                     help = 'primal-dual tuning parameter for frb-pd',metavar='gammafrb')
 parser.add_argument('--betacp',type=float,default=1e-1,dest='betacp',
-                    help = 'primal-dual tuning parameter for cp-bt',metavar='betacp')
+                    help = 'primal-dual tuning parameter beta for cp-bt',metavar='betacp')
 
 lam = parser.parse_args().lam
 mu = parser.parse_args().mu

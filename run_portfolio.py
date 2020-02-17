@@ -30,7 +30,7 @@ parser.add_argument('--gammafrb',type=float,default=1.0,dest='gammafrb',
 parser.add_argument('--gamma2f',type=float,default=0.1,dest='gamma2f',
                     help = 'primal-dual constant for ps2f',metavar='gamma2f')
 parser.add_argument('--betacp',type=float,default=1.0,dest='betacp',
-                    help = 'primal-dual constant for cp-bt',metavar='betacp')
+                    help = 'primal-dual constant beta for cp-bt',metavar='betacp')
 parser.add_argument('--gammatg',type=float,default=1.0,dest='gammatg',
                     help = 'primal-dual constant for Tseng-pd',metavar='gammatg')
 parser.add_argument('--verbose',type=int,default=0,dest='verbose',
