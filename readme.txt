@@ -55,6 +55,9 @@ To run the experiments in [1]:
   These scripts will run one of the parameter settings studied in the paper.  
   Other parameter values may be tested by modifying the parameters from 
   the command line.
+  
+  Whenever a plot is displayed, the matplotlib package script will wait for 
+  you to close the plot before proceeding (you may save it first).
 
 Various parameters can be set from the command line.  To find out which 
 parameters can be set, run the commands
