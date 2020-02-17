@@ -76,7 +76,7 @@ y = y_train
 S = S_train
 n = n_train
 
-print("addding all ones column to train/test matrix for offset/intercept...")
+print("Adding all ones column to train/test matrix for offset/intercept...")
 onesCol = np.ones([n,1])
 onesCol = sp.csc_matrix(onesCol)
 S = sp.hstack([onesCol,S],format='csc')
@@ -86,7 +86,8 @@ onesCol = sp.csc_matrix(onesCol)
 S_test = sp.hstack([onesCol, S_test], format='csc')
 
 print("The offset is replicated in gamma.")
-print("We append a column and row to H of all zeros except a one in the upper left corner")
+print("To H, we append a column and row consisting of all zeros, except for")
+print("   a one in the upper left corner")
 (p,d) = S_A.shape
 zerosCol = np.zeros([p,1])
 zerosCol = sp.csc_matrix(zerosCol)
