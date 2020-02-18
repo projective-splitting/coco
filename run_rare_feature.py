@@ -191,14 +191,14 @@ print("================")
 print("running 1fbt...")
 init = algo.InitPoint([],np.zeros(d),np.zeros(d),np.zeros(p))
 out1f = algo.PS1f_bt_comp(init,iter,G,theProx1,theProx2,
-                          theGrad,Gt,theFunc,gamma = gamma1f)
+                          theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=False)
 print("1f TOTAL running time: "+str(out1f.times[-1]))
 print("================")
 
 print("running 2fbt...")
 init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
 out2f = algo.PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,
-                          theFunc,gamma=gamma2f)
+                          theFunc,gamma=gamma2f,equalRhos=False)
 print("2f TOTAL running time: "+str(out2f.times[-1]))
 print("================")
 

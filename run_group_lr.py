@@ -51,7 +51,10 @@ gamma2f = parser.parse_args().gamma2f
 gammatg = parser.parse_args().gammatg
 gammafrb = parser.parse_args().gammafrb
 betacp = parser.parse_args().betacp
-
+initial_stepsize = 0.1 # all algorithms will use this initial stepsize. Set to this rather than 1
+                       # to avoid overlows in the logistic regression calculations during the
+                       # early iterations. cpBT needs to use initial_stepsize/betacp to avoid
+                       # overflow.
 
 
 if dataset == 'colitis':
@@ -106,21 +109,21 @@ def print_results(alg,x,time2run):
 print("running ada3op")
 init = algo.InitPoint([],[],np.zeros(d+1),[])
 out3op = algo.adap3op(group_prox,theGrad_smart,lrFunc,theFunc,prox_L1,lrFunc_smart,
-            init, stepIncrease = step_increase,iter=iter,lip_const = lam1)
+            init, stepIncrease = step_increase,iter=iter,lip_const = lam1, gamma = initial_stepsize)
 print_results("ada3op",out3op.x,out3op.times[-1])
 
 
 print("running 1fbt...")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),np.zeros(d+1),np.zeros(d+1))
 out1f = algo.PS1f_bt(theFunc,prox_L1,group_prox,theGrad,init,gamma = gamma1f,
-                     stepIncrease = step_increase,iter=iter)
+                     stepIncrease = step_increase,iter=iter,rho1=initial_stepsize)
 print_results("ps1fbt",out1f.x1,out1f.times[-1])
 
 
 print("running 2fbt...")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
 out2f = algo.PS2f_bt(theFunc,theGrad,prox_L1,group_prox,init,iter=iter,
-                     gamma=gamma2f,stepIncrease = step_increase)
+                     gamma=gamma2f,stepIncrease = step_increase,rho1=initial_stepsize)
 
 print_results("ps2fbt",out2f.x1,out2f.times[-1])
 
@@ -129,20 +132,20 @@ print("running cp-bt")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),[],[])
 outcp = algo.cpBT(group_prox, the_grad_smart_for_cp, proxg_for_cp,
                   theFunc, the_func_smart_for_cp, init, iter=iter,beta=betacp,
-                  stepInc=step_increase)
+                  stepInc=step_increase,tau = initial_stepsize/betacp)
 print_results("cp-bt",outcp.y,outcp.times[-1])
 
 print("Running Tseng-pd")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
 outTseng = algo.tseng_product(theFunc, proxfstar4tseng, proxgstar4tseng,
-                              theGrad, init, stepIncrease=step_increase,
+                              theGrad, init, stepIncrease=step_increase,alpha = initial_stepsize,
                                gamma1=gammatg,gamma2=gammatg,iter=iter)
 print_results("tseng-pd",outTseng.x,outTseng.times[-1])
 
 print("running FRB...")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
 outFRB = algo.for_reflect_back(theFunc,proxfstar4tseng,proxgstar4tseng,theGrad,init,iter=iter,gamma0=gammafrb,
-                     gamma1=gammafrb,stepIncrease=step_increase)
+                     gamma1=gammafrb,stepIncrease=step_increase,lam = initial_stepsize)
 
 print_results("frb-pd",outFRB.x,outFRB.times[-1])
 
@@ -210,74 +213,3 @@ plt.show()
 print("plotting comparison of fz and fx1 for ps1fbt and ps2fbt")
 algo.compareZandX(out1f,"1f")
 algo.compareZandX(out2f,"2f")
-
-
-
-# get result returns the first iterate s.t. f stays below tol
-def getResult(f,tol):
-    f_flip = np.flip(f,0)
-    result = (1.0 * (f_flip < tol)).argmin()
-    result = len(f) - result
-    return result
-
-tol = 1e-3
-
-iter_3opt = getResult((np.array(out3op.f) - opt)/opt,tol)
-iter_tseng = getResult((np.array(outTseng.f) - opt) / opt,tol)
-iter_cp = getResult((np.array(outcp.f) - opt) / opt,tol)
-iter_1f = getResult((np.array(out1f.fx1) - opt)/opt,tol)
-iter_2f = getResult((np.array(out2f.fx1) - opt)/opt,tol)
-iter_frb = getResult((np.array(outFRB.f) - opt) / opt,tol)
-
-
-print("=================================")
-print("=================================")
-print("=================================")
-print("<<<<<<<<<<< Results >>>>>>>>>>>>>")
-if iter_3opt<len(out3op.times):
-    totalT3op = out3op.times[iter_3opt]
-    print("3op time: "+str(totalT3op))
-    print("3op iteration: " + str(iter_3opt))
-else:
-    print("3opt no made it")
-print("=================================")
-if iter_1f<len(out1f.times):
-    totalT1f = out1f.times[iter_1f]
-    print("1f time: "+str(totalT1f))
-    print("1f iteration: " + str(iter_1f))
-else:
-    print("1f no made it")
-print("=================================")
-if iter_2f<len(out2f.times):
-    totalT2f = out2f.times[iter_2f]
-    print("2f time: "+str(totalT2f))
-    print("2f iteration: "+str(iter_2f))
-else:
-    print("2f no made it")
-print("=================================")
-if iter_tseng<len(outTseng.times):
-    totalTtseng = outTseng.times[iter_tseng]
-    print("tseng time: "+str(totalTtseng))
-    print("tseng iteration: "+str(iter_tseng))
-else:
-    print("tseng no made it")
-print("=================================")
-if iter_cp<len(outcp.times):
-    totalTcp = outcp.times[iter_cp]
-    print("cp time: "+str(totalTcp))
-    print("cp iteration: "+str(iter_cp))
-else:
-    print("cp no made it")
-print("=================================")
-if iter_frb<len(outFRB.times):
-    totalTfrb = outFRB.times[iter_frb]
-    print("frb time: " + str(totalTfrb))
-    print("frb iteration: " + str(iter_frb))
-else:
-    print("frb did not make it")
-
-print("=================================")
-print("=================================")
-print("=================================")
-
-print("<<<<<<<<<<<         >>>>>>>>>>>>>")
