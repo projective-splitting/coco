@@ -23,21 +23,21 @@ tAbsolutestart = time.time()
 parser = argparse.ArgumentParser(description='Rare Feature Selection Experiment')
 
 parser.add_argument('--lam',type=float,default=1e-5,dest='lam',
-                    help = 'reg parameter',metavar='lam')
+                    help = 'reg parameter, default 1e-5',metavar='lam')
 parser.add_argument('--mu',type=float,default=0.5,dest='mu',
-                    help = 'reg parameter',metavar='mu')
-parser.add_argument('--iter',type=int,default=1000,dest='iter',
-                    help = 'num iterations, same for all algorithms',metavar='iter')
+                    help = 'reg parameter, default 0.5',metavar='mu')
+parser.add_argument('--iter',type=int,default=500,dest='iter',
+                    help = 'num iterations, same for all algorithms, default 500',metavar='iter')
 parser.add_argument('--gamma1f',type=float,default=1e1,dest='gamma1f',
-                    help = 'primal-dual tuning parameter for ps1fbt',metavar='gamma1f')
+                    help = 'primal-dual tuning parameter for ps1fbt, default 10.0',metavar='gamma1f')
 parser.add_argument('--gamma2f',type=float,default=1e2,dest='gamma2f',
-                    help = 'primal-dual tuning parameter for ps2fbt',metavar='gamma2f')
+                    help = 'primal-dual tuning parameter for ps2fbt, default 1e2',metavar='gamma2f')
 parser.add_argument('--gammatg',type=float,default=1e0,dest='gammatg',
-                    help = 'primal-dual tuning parameter for tseng-pd',metavar='gammatg')
+                    help = 'primal-dual tuning parameter for tseng-pd, default 1.0',metavar='gammatg')
 parser.add_argument('--gammafrb',type=float,default=1e0,dest='gammafrb',
-                    help = 'primal-dual tuning parameter for frb-pd',metavar='gammafrb')
+                    help = 'primal-dual tuning parameter for frb-pd, default 1.0',metavar='gammafrb')
 parser.add_argument('--betacp',type=float,default=1e-1,dest='betacp',
-                    help = 'primal-dual tuning parameter beta for cp-bt',metavar='betacp')
+                    help = 'primal-dual tuning parameter beta for cp-bt, default 1e-1',metavar='betacp')
 
 lam = parser.parse_args().lam
 mu = parser.parse_args().mu

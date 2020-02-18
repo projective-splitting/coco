@@ -21,25 +21,25 @@ tActualStart = time.time()
 parser = argparse.ArgumentParser(description='Group Sparse LR Experiment')
 
 parser.add_argument('--lam1',type=float,default=1e-1,dest='lam1',
-                    help = 'reg parameter for ell 1 norm',metavar='lam1')
+                    help = 'reg parameter for ell 1 norm, default 0.1',metavar='lam1')
 parser.add_argument('--lam2',type=float,default=1e-1,dest='lam2',
-                    help = 'reg parameter for group norm',metavar='lam2')
-parser.add_argument('--iter',type=int,default=2000,dest='iter',
-                    help = 'number of iterations (all algorithms the same)',metavar='iter')
+                    help = 'reg parameter for group norm, default 0.1',metavar='lam2')
+parser.add_argument('--iter',type=int,default=500,dest='iter',
+                    help = 'number of iterations (all algorithms the same), default 500',metavar='iter')
 parser.add_argument('--stepIncrease',type=float,default=1.1,dest='stepIncrease',
-                    help = 'stepsize increase factor (all algorithm the same)',metavar='step_increase')
+                    help = 'stepsize increase factor (all algorithm the same), default 1.1',metavar='step_increase')
 parser.add_argument('--dataset',default='colitis',dest='dataset',
-                    help = 'which dataset, either colitis or breastCancer',metavar='dataset')
+                    help = 'which dataset, either colitis or breastCancer, default colitis',metavar='dataset')
 parser.add_argument('--gamma1f',type=float,default=1.0,dest='gamma1f',
-                    help = 'tuning parameter for ps1fbt',metavar='gamma1f')
+                    help = 'tuning parameter for ps1fbt, default 1.0',metavar='gamma1f')
 parser.add_argument('--gamma2f',type=float,default=1.0,dest='gamma2f',
-                    help = 'tuning parameter for ps2fbt',metavar='gamma2f')
+                    help = 'tuning parameter for ps2fbt, default 1.0',metavar='gamma2f')
 parser.add_argument('--gammatg',type=float,default=1e3,dest='gammatg',
-                    help = 'tuning parameter for Tseng-pd',metavar='gammatg')
+                    help = 'tuning parameter for Tseng-pd, default 1e3',metavar='gammatg')
 parser.add_argument('--gammafrb',type=float,default=1e3,dest='gammafrb',
-                    help = 'tuning parameter for FRB',metavar='gammafrb')
-parser.add_argument('--betacp',type=float,default=1e1,dest='betacp',
-                    help = 'tuning parameter beta for cp-bt',metavar='betacp')
+                    help = 'tuning parameter for FRB, default 1e3',metavar='gammafrb')
+parser.add_argument('--betacp',type=float,default=1e-1,dest='betacp',
+                    help = 'tuning parameter beta for cp-bt, default 1e1',metavar='betacp')
 
 lam1 = parser.parse_args().lam1
 lam2 = parser.parse_args().lam2

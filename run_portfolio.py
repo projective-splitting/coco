@@ -18,25 +18,25 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Portfolio Experiment')
 parser.add_argument('--dimension',type=int,default=1000,dest='dimension',
-                    help = 'problem dimension/number of variables',metavar='d')
+                    help = 'problem dimension/number of variables, default 1000',metavar='d')
 parser.add_argument('--deltar',type=float,default=0.5,dest='deltar',
-                    help = 'constant used to generate r',metavar='deltar')
+                    help = 'constant used to generate r, default 0.5',metavar='deltar')
 parser.add_argument('--iter',type=int,default=1000,dest='iterations',
-                    help = 'number of iterations to run all algorithms',metavar='iter')
+                    help = 'number of iterations to run all algorithms, default 1000',metavar='iter')
 parser.add_argument('--gamma1f',type=float,default=0.01,dest='gamma1f',
-                    help = 'primal-dual constant for ps1f',metavar='gamma1f')
+                    help = 'primal-dual constant for ps1f, default 0.01',metavar='gamma1f')
 parser.add_argument('--gammafrb',type=float,default=1.0,dest='gammafrb',
-                    help = 'primal-dual constant for frb',metavar='gammafrb')
+                    help = 'primal-dual constant for frb, default 1.0',metavar='gammafrb')
 parser.add_argument('--gamma2f',type=float,default=0.1,dest='gamma2f',
-                    help = 'primal-dual constant for ps2f',metavar='gamma2f')
+                    help = 'primal-dual constant for ps2f, default 0.1',metavar='gamma2f')
 parser.add_argument('--betacp',type=float,default=1.0,dest='betacp',
-                    help = 'primal-dual constant beta for cp-bt',metavar='betacp')
+                    help = 'primal-dual constant beta for cp-bt, default 1.0',metavar='betacp')
 parser.add_argument('--gammatg',type=float,default=1.0,dest='gammatg',
-                    help = 'primal-dual constant for Tseng-pd',metavar='gammatg')
+                    help = 'primal-dual constant for Tseng-pd, default 1.0',metavar='gammatg')
 parser.add_argument('--verbose',type=int,default=0,dest='verbose',
-                    help = 'set to 1 to print iteration number, else 0',metavar='verbose')
+                    help = 'set to 1 to print iteration number, else 0, default 0',metavar='verbose')
 parser.add_argument('--runCVX',type=int,default=0,dest='runCVX',
-                    help = 'set to 1 to run cvxpy',metavar='runCVX')
+                    help = 'set to 1 to run cvxpy, default to 0',metavar='runCVX')
 
 # d is the problem dimension, size of the vector x in the Markovitz optimization problem
 # default to d = 1000
