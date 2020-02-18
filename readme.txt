@@ -66,7 +66,7 @@ $ python run_portfolio.py -h
 $ python run_group_lr.py -h
 $ python run_rare_feature.py -h
 
-Following are the specific commands required to reproduce each of the scripts in
+Following are the specific commands required to reproduce each of the figures in
 [1].
   - portfolio:
     1: python run_portfolio.py --dimension 10000
@@ -97,6 +97,10 @@ Following are the specific commands required to reproduce each of the scripts in
                                    --gammatg 1e4 --gammafrb 1e4
     3: python run_rare_feature.py --lam 1e-1 --gamma1f 1e4 --gamma2f 1e5 \
                                    --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6
+
+Note that the parameter --betacp sets the parameter beta for the
+Chambolle-Pock algorithm, while the parameter settings tables in the paper
+show the inverse of beta.
 
 The algorithms are implemented in algorithms.py, including
 PS1f_bt()          - one forward step projective splitting with backtracking
