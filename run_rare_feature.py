@@ -87,7 +87,7 @@ S_test = sp.hstack([onesCol, S_test], format='csc')
 
 print("The offset is replicated in gamma.")
 print("To H, we append a column and row consisting of all zeros, except for")
-print("   a one in the upper left corner")
+print("a one in the upper left corner")
 (p,d) = S_A.shape
 zerosCol = np.zeros([p,1])
 zerosCol = sp.csc_matrix(zerosCol)
