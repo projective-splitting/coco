@@ -72,31 +72,32 @@ Following are the specific commands required to reproduce each of the figures in
     1: python run_portfolio.py --dimension 10000
     2: python run_portfolio.py --dimension 10000 --deltar 0.8
     3: python run_portfolio.py --dimension 10000 --deltar 1.0 --gamma1f 0.5 --gamma2f 10 \
-                                --betacp 0.5 --gammafrb 10
+                               --betacp 0.5 --gammafrb 10
     4: python run_portfolio.py --dimension 10000 --deltar 1.5 --gamma1f 5 --gamma2f 10 \
-                                --betacp 0.5 --gammafrb 10 --gammatg 10
+                               --betacp 0.5 --gammafrb 10 --gammatg 10
 
   - group logistic regression
     1: python run_group_lr.py --lam1 0.05 --lam2 0.05 --dataset breastCancer \
-                               --gamma1f 0.05
+                              --gamma1f 0.05
     2: python run_group_lr.py --lam1 0.5 --lam2 0.5 --dataset breastCancer \
-                               --gamma1f 1e2  --gamma2f 1e2 --gammatg 1e5   \
-                               --gammafrb 1e5 --betacp 1e-3
+                              --gamma1f 1e2  --gamma2f 1e2 --gammatg 1e5   \
+                              --gammafrb 1e5 --betacp 1e-3
     3: python run_group_lr.py --lam1 0.85 --lam2 0.85 --dataset breastCancer \
-                               --gamma1f 1e2  --gamma2f 1e5 --gammatg 1e5     \
-                               --gammafrb 1e5 --betacp 1e-4
+                              --gamma1f 1e2  --gamma2f 1e5 --gammatg 1e5     \
+                              --gammafrb 1e5 --betacp 1e-4
     4: python run_group_lr.py --lam1 0.1 --lam2 0.1 --gamma1f 0.1 --gammatg 1e4 \
-                               --gammafrb 1e4 --betacp 1e-4
-    5: python run_group_lr.py --lam1 0.5 --lam2 0.5 --gammatg 1e6 --gammafrb 1e6\
+                              --gammafrb 1e4 --betacp 1e-4
+    5: python run_group_lr.py --lam1 0.5 --lam2 0.5 --gammatg 1e6 --gammafrb 1e6 \
+                              --gammafrb 1e6 --betacp 1e-3
     6: python run_group_lr.py --lam1 1.0 --lam2 1.0 --gammatg 1e6 --gammafrb 1e6\
-                               --betacp 1e-5
+                              --betacp 1e-5
 
   - rare feature selection
     1: python run_rare_feature.py --gamma1f 1.0
     2: python run_rare_feature.py --lam 1e-2 --gamma2f 1e1 --betacp 1e-3\
-                                   --gammatg 1e4 --gammafrb 1e4
+                                  --gammatg 1e4 --gammafrb 1e4
     3: python run_rare_feature.py --lam 1e-1 --gamma1f 1e4 --gamma2f 1e5 \
-                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6
+                                  --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6
 
 Note that the parameter --betacp sets the parameter beta for the
 Chambolle-Pock algorithm, while the parameter settings tables in the paper
