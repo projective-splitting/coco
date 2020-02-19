@@ -268,7 +268,7 @@ opt = min(np.concatenate([np.array(out1f.fx2), np.array(out2f.fx2), np.array(out
 
 markFreq = 2000
 markerSz = 10
-print("plotting relative error to optimality of funtion values")
+print("plotting relative error to optimality of function values")
 print("optimal value estimated as lowest returned by any algorithm")
 plt.semilogy(out1f.times,(np.array(out1f.fx2)-opt)/opt)
 plt.semilogy(out2f.times,(np.array(out2f.fx2)-opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
