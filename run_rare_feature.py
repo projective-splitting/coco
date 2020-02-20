@@ -27,7 +27,7 @@ parser.add_argument('--lam',type=float,default=1e-5,dest='lam',
 parser.add_argument('--mu',type=float,default=0.5,dest='mu',
                     help = 'reg parameter, default 0.5',metavar='mu')
 parser.add_argument('--iter',type=int,default=500,dest='iter',
-                    help = 'num iterations, same for all algorithms, default 500',metavar='iter')
+                    help = 'num iterations, same for all algorithms, default 1000',metavar='iter')
 parser.add_argument('--gamma1f',type=float,default=1e1,dest='gamma1f',
                     help = 'primal-dual tuning parameter for ps1fbt, default 10.0',metavar='gamma1f')
 parser.add_argument('--gamma2f',type=float,default=1e2,dest='gamma2f',
@@ -39,15 +39,29 @@ parser.add_argument('--gammafrb',type=float,default=1e0,dest='gammafrb',
 parser.add_argument('--betacp',type=float,default=1e-1,dest='betacp',
                     help = 'primal-dual tuning parameter beta for cp-bt, default 1e-1',metavar='betacp')
 
+print('#############################')
+print('rare feature selection experiment')
+print('#############################')
 lam = parser.parse_args().lam
+print('lam = '+str(lam))
 mu = parser.parse_args().mu
+print('mu = '+str(mu))
 iter = parser.parse_args().iter
+print('number of iterations = '+str(iter))
+print('#############################')
+print('algorithm parameters')
+print('#############################')
 gamma1f = parser.parse_args().gamma1f
+print('gamma1f = '+str(gamma1f))
 gamma2f = parser.parse_args().gamma2f
+print('gamma2f = '+str(gamma2f))
 gammatg = parser.parse_args().gammatg
+print('gammatg = '+str(gammatg))
 gammafrb = parser.parse_args().gammafrb
+print('gammafrb = '+str(gammafrb))
 betacp = parser.parse_args().betacp
-
+print('betacp = '+str(betacp))
+print('#############################')
 # the following matrices are loaded in scipy's sparse matrix format '.npz'
 #The trip advisor data were kindly shared with us by Xiaohan Yan and Jacob Bien
 #Yan, X., Bien, J.: Rare Feature Selection in High Dimensions. arXiv preprint
@@ -65,9 +79,7 @@ S_A     = sp.load_npz('data/trip_advisor/S_A.npz')     # this matrix is called H
 y_train = np.load('data/trip_advisor/y_train.npy')     # training labels
 y_test  = np.load('data/trip_advisor/y_test.npy')      # testing labels
 
-print("----------------------------------")
-print("----------------------------------")
-print("----------------------------------")
+
 
 (n_train,_) = S_train.shape
 (n_test,_) = S_test.shape
@@ -111,8 +123,7 @@ print("d is "+str(d))
 print("p is "+str(p))
 print("density of S: "+str(S.count_nonzero()/(n*float(p))))
 print("density of S_A: "+str(S_A.count_nonzero()/(p*float(d))))
-print("lambda is "+str(lam))
-print("mu is "+str(mu))
+
 
 #################################################################################
 # create plug-in functions for gradient, prox, objective func evals, and matrix mults
@@ -196,9 +207,12 @@ print("1f TOTAL running time: "+str(out1f.times[-1]))
 print("================")
 
 print("running 2fbt...")
+# Since ps2fbt computes two forward steps per iteration, only run it for half as
+# many iterations to get similar times to the other methods.
 init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
-out2f = algo.PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,
-                          theFunc,gamma=gamma2f,equalRhos=False)
+out2f = algo.PS2f_bt_comp(init,int(0.5*iter),G,theProx1,theProx2,theGrad,Gt,
+                          theFunc,gamma=gamma2f,equalRhos=False,rho1=1e1)
+# note that rho1 for ps2f_bt_comp is set to 1e1 for all the rare feature experiments
 print("2f TOTAL running time: "+str(out2f.times[-1]))
 print("================")
 
@@ -210,9 +224,11 @@ print("cp-bt TOTAL running time: "+str(outcp.times[-1]))
 print("================")
 
 print("running tseng...")
+# Since Tseng computes two forward steps per iteration, only run it for half as
+# many iterations to get similar times to the other methods.
 init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
 outtseng = algo.tseng_product(theFunc, proxfstar_4_tseng, proxg, theGrad, init,
-                              iter=iter, gamma1=gammatg,gamma2=gammatg,G=G,Gt=Gt)
+                              iter=int(0.5*iter), gamma1=gammatg,gamma2=gammatg,G=G,Gt=Gt)
 print("TOTAL tseng time: "+str(outtseng.times[-1]))
 print("================")
 
@@ -268,13 +284,15 @@ opt = min(np.concatenate([np.array(out1f.fx2), np.array(out2f.fx2), np.array(out
 
 markFreq = 2000
 markerSz = 10
-print("plotting relative error to optimality of function values")
+print("plotting relative error to optimality of funtion values")
 print("optimal value estimated as lowest returned by any algorithm")
-plt.semilogy(out1f.times,(np.array(out1f.fx2)-opt)/opt)
-plt.semilogy(out2f.times,(np.array(out2f.fx2)-opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
-plt.semilogy(outfrb.times, (np.array(outfrb.f)-opt)/opt,'D-',markevery = markFreq,markersize =markerSz,color='brown')
-plt.semilogy(outcp.times,(np.array(outcp.f)-opt)/opt,'rs-',markevery = markFreq,markersize =markerSz)
-plt.semilogy(outtseng.times,(np.array(outtseng.f)-opt)/opt,'mx-',markevery = markFreq,markersize =markerSz)
+# only plot out to half the total number of iterations to reduce the distortion
+# caused by the inaccuracy of the estimate for opt.
+plt.semilogy(out1f.times[0:int(len(out1f.times)/2)],(np.array(out1f.fx2[0:int(len(out1f.times)/2)])-opt)/opt)
+plt.semilogy(out2f.times[0:int(len(out2f.times)/2)],(np.array(out2f.fx2[0:int(len(out2f.times)/2)])-opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outfrb.times[0:int(len(outfrb.times)/2)], (np.array(outfrb.f[0:int(len(outfrb.times)/2)])-opt)/opt,'D-',markevery = markFreq,markersize =markerSz,color='brown')
+plt.semilogy(outcp.times[0:int(len(outcp.times)/2)],(np.array(outcp.f[0:int(len(outcp.times)/2)])-opt)/opt,'rs-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outtseng.times[0:int(len(outtseng.times)/2)],(np.array(outtseng.f[0:int(len(outtseng.times)/2)])-opt)/opt,'mx-',markevery = markFreq,markersize =markerSz)
 
 fonts = 15
 plt.xlabel('time (s)',fontsize = fonts)

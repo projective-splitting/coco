@@ -24,7 +24,7 @@ parser.add_argument('--lam1',type=float,default=1e-1,dest='lam1',
                     help = 'reg parameter for ell 1 norm, default 0.1',metavar='lam1')
 parser.add_argument('--lam2',type=float,default=1e-1,dest='lam2',
                     help = 'reg parameter for group norm, default 0.1',metavar='lam2')
-parser.add_argument('--iter',type=int,default=500,dest='iter',
+parser.add_argument('--iter',type=int,default=1000,dest='iter',
                     help = 'number of iterations (all algorithms the same), default 500',metavar='iter')
 parser.add_argument('--stepIncrease',type=float,default=1.1,dest='stepIncrease',
                     help = 'stepsize increase factor (all algorithm the same), default 1.1',metavar='step_increase')
@@ -40,28 +40,45 @@ parser.add_argument('--gammafrb',type=float,default=1e3,dest='gammafrb',
                     help = 'tuning parameter for FRB, default 1e3',metavar='gammafrb')
 parser.add_argument('--betacp',type=float,default=1e-1,dest='betacp',
                     help = 'tuning parameter beta for cp-bt, default 1e1',metavar='betacp')
+parser.add_argument('--initial_stepsize',type=float,default=1e-1,dest='initial_stepsize',
+                    help = 'initial stepsize for all methods, default 1e-1',metavar='initial_stepsize')
 
+print('########################')
+print('group lr experiment')
+print('########################')
 lam1 = parser.parse_args().lam1
+print('lam1 = '+str(lam1))
 lam2 = parser.parse_args().lam2
+print('lam2 = '+str(lam2))
 iter = parser.parse_args().iter
-step_increase = parser.parse_args().stepIncrease
+print('iterations (same for all algorithms) = '+str(iter))
 dataset = parser.parse_args().dataset
+print('dataset = '+dataset)
+print('########################')
+print('algorithm parameters')
+step_increase = parser.parse_args().stepIncrease
+print('step_increase = '+str(step_increase))
 gamma1f = parser.parse_args().gamma1f
+print('gamma1f = '+str(gamma1f))
 gamma2f = parser.parse_args().gamma2f
+print('gamma2f = '+str(gamma2f))
 gammatg = parser.parse_args().gammatg
+print('gammatg = '+str(gammatg))
 gammafrb = parser.parse_args().gammafrb
+print('gammafrb = '+str(gammafrb))
 betacp = parser.parse_args().betacp
-initial_stepsize = 0.1 # all algorithms will use this initial stepsize. Set to this rather than 1
-                       # to avoid overlows in the logistic regression calculations during the
-                       # early iterations. cpBT needs to use initial_stepsize/betacp to avoid
-                       # overflow.
-
+print('betacp = '+str(betacp))
+initial_stepsize = parser.parse_args().initial_stepsize
+# all algorithms will use this initial stepsize. Set to 0.1
+# to avoid overlows in the logistic regression calculations during the
+# early iterations. cpBT needs to use initial_stepsize/betacp to avoid
+# overflow.
+print('initial stepsize = '+str(initial_stepsize))
+print('##################')
 
 if dataset == 'colitis':
-    print("Colitis dataset")
     dataFolder = 'data/colitis/'
 else:
-    print("Breast Cancer dataset")
     dataFolder = 'data/breast_cancer/'
 
 
@@ -105,7 +122,8 @@ def print_results(alg,x,time2run):
     print(alg + " nnz groups: " + str(sum(group_norms>1e-5)))
     print("=== end results summary===")
 
-
+print('##################')
+print('##################')
 print("running ada3op")
 init = algo.InitPoint([],[],np.zeros(d+1),[])
 out3op = algo.adap3op(group_prox,theGrad_smart,lrFunc,theFunc,prox_L1,lrFunc_smart,
@@ -168,12 +186,8 @@ plt.grid()
 
 plt.show()
 
-
-
-
 opt = min(np.concatenate([np.array(out3op.f),np.array(out1f.fx1),np.array(out2f.fx1),np.array(outTseng.f),
                              np.array(outcp.f),np.array(outFRB.f)]))
-
 
 print("plotting function values versus elapsed time")
 plt.plot(out1f.times,out1f.fx1)
@@ -191,16 +205,19 @@ plt.show()
 
 
 print("plotting log of relative error to optimality of function values versus time")
+# to minimize distortions in the relative error plot due to using an estimate for opt,
+# only plot out to 1/2 of the iterations
+iter_frac = 0.5
 markFreq = 500
 markerSz = 10
-plt.semilogy(out1f.times,(np.array(out1f.fx1) - opt)/opt)
-plt.semilogy(out2f.times,(np.array(out2f.fx1) - opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
+plt.semilogy(out1f.times[0:int(iter_frac*len(out1f.times))],(np.array(out1f.fx1[0:int(iter_frac*len(out1f.times))]) - opt)/opt)
+plt.semilogy(out2f.times[0:int(iter_frac*len(out2f.times))],(np.array(out2f.fx1[0:int(iter_frac*len(out2f.times))]) - opt)/opt,'-o',markevery = markFreq,markersize =markerSz)
 
-plt.semilogy(out3op.times, (np.array(out3op.f) - opt)/opt,'-v',markevery = markFreq,markersize =markerSz)
+plt.semilogy(out3op.times[0:int(iter_frac*len(out3op.times))], (np.array(out3op.f[0:int(iter_frac*len(out3op.times))]) - opt)/opt,'-v',markevery = markFreq,markersize =markerSz)
 
-plt.semilogy(outcp.times, (np.array(outcp.f) - opt) / opt,'s-',markevery = markFreq,markersize =markerSz)
-plt.semilogy(outTseng.times, (np.array(outTseng.f) - opt) / opt,'x-',markevery = markFreq,markersize =markerSz)
-plt.semilogy(outFRB.times,(np.array(outFRB.f) - opt) / opt,'D-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outcp.times[0:int(iter_frac*len(outcp.times))], (np.array(outcp.f[0:int(iter_frac*len(outcp.times))]) - opt) / opt,'s-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outTseng.times[0:int(iter_frac*len(outTseng.times))], (np.array(outTseng.f[0:int(iter_frac*len(outTseng.times))]) - opt) / opt,'x-',markevery = markFreq,markersize =markerSz)
+plt.semilogy(outFRB.times[0:int(iter_frac*len(outFRB.times))],(np.array(outFRB.f[0:int(iter_frac*len(outFRB.times))]) - opt) / opt,'D-',markevery = markFreq,markersize =markerSz)
 
 
 plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb'],fontsize='large')

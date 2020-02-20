@@ -87,7 +87,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
 
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print('iter '+str(k))
 
         tstartiter = time.time()
 
@@ -341,7 +341,7 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
 
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print("iter: "+str(k))
         tstartiter = time.time()
         rho1 = rho1*stepIncrease
         [x1,y1,rho1,gradsNew] = bt_2f(z,rho1,w,theProx1,theGrad,Delta,stepDecrease)
@@ -543,18 +543,16 @@ def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease 
     funcEvals = [0]
     times = [0]
     constraintErr = []
-
+    converged = False
+    gamma_tol = 1e-20
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print("iter: "+str(k))
         tstartiter = time.time()
         [gradfz,Az] = gradf(z)
         gradEvals.append(gradEvals[-1]+1)
 
         fz = f_smooth_smart(z,Az)
-
-
-
 
         if stepIncrease>1.0:
             deltat = Qt - fx
@@ -572,6 +570,21 @@ def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease 
                 doLine = False
             else:
                 gamma = gamma*tau
+            if gamma<gamma_tol:
+                # stepsize is too small in backtracking which means the method has
+                # converged to within machine precision
+                # exiting method
+                print(fx)
+                print(Qt)
+                print(np.linalg.norm(x-z)**2)
+                print(gradfz.T.dot(x - z))
+                converged = True
+                break
+
+        if converged==True:
+            #method converged
+            print('ada3op converged early, exiting method')
+            break
 
         z = proxh(x+gamma*u,gamma)
         u = u + (x-z)/gamma
@@ -659,7 +672,7 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
 
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print("iter: "+str(k))
 
         tstartIter = time.time()
         xnext = proxg(x - tau * Kstary, tau)
@@ -780,7 +793,7 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
 
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print("iter: "+str(k))
 
         tstartiter = time.time()
         # compute Ap
@@ -931,7 +944,7 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
 
     for k in range(iter):
         if (k%100==0) & verbose:
-            print(k)
+            print("iter: "+str(k))
         tstartIter = time.time()
 
         doBackTrack = True

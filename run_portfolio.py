@@ -21,7 +21,7 @@ parser.add_argument('--dimension',type=int,default=1000,dest='dimension',
                     help = 'problem dimension/number of variables, default 1000',metavar='d')
 parser.add_argument('--deltar',type=float,default=0.5,dest='deltar',
                     help = 'constant used to generate r, default 0.5',metavar='deltar')
-parser.add_argument('--iter',type=int,default=1000,dest='iterations',
+parser.add_argument('--iter',type=int,default=500,dest='iterations',
                     help = 'number of iterations to run all algorithms, default 1000',metavar='iter')
 parser.add_argument('--gamma1f',type=float,default=0.01,dest='gamma1f',
                     help = 'primal-dual constant for ps1f, default 0.01',metavar='gamma1f')
@@ -40,21 +40,35 @@ parser.add_argument('--runCVX',type=int,default=0,dest='runCVX',
 
 # d is the problem dimension, size of the vector x in the Markovitz optimization problem
 # default to d = 1000
+print('##########################')
+print('portfolio optimization')
+print('##########################')
 d = parser.parse_args().dimension
+print('problem dimension '+str(d))
 deltar = parser.parse_args().deltar
+print('deltar '+str(deltar))
 iter = parser.parse_args().iterations
+print('number of iterations (same for all algorithms) '+str(iter))
 verbose = parser.parse_args().verbose
 
 # These parameters are important tuning parameters which effect practical performance
 # see table 1 on page 30 of the arXiv paper for how we set it for the problems
 # in that paper
+print('##########################')
+print('algorithm parameters: ')
 gamma1f = parser.parse_args().gamma1f
+print('gamma1f = '+str(gamma1f))
 gamma_frb = parser.parse_args().gammafrb
+print('gamma_frb = '+str(gamma_frb))
 gamma2f = parser.parse_args().gamma2f
+print('gamma2f = '+str(gamma2f))
 betacp = parser.parse_args().betacp
+print('betacp = '+str(betacp))
 gamma_tg = parser.parse_args().gammatg
+print('gamma_tg = '+str(gamma_tg))
 runCVX = parser.parse_args().runCVX
-
+print('runCVX = '+str(runCVX))
+print('##########################')
 tBegin = time.time()
 
 # randomly generate vector m of mean investment returns (between 0 and 100)
@@ -68,8 +82,7 @@ r = deltar*sum(m)/(d)
 
 trand = time.time()
 
-print(str(d)+" dimension problem")
-print("creating matrix...")
+print("creating random matrix...")
 # Q is a psd matrix
 Q = np.random.normal(0,1,[d,d])
 Q = Q.dot(Q.T)
@@ -152,7 +165,6 @@ def print_results(alg, t, x, mults):
 # ...Running algorithms..............................
 #----------------------------------------------------
 
-print("number of iterations (same for each method): " + str(iter))
 
 
 # set runCVX to true to run cvx. Only good for d<=1000 on my machine otherwise too slow
@@ -165,8 +177,7 @@ if(runCVX):
     [cvxopt,xopt] = algo.runCVX_portfolio(d,Q,m,r)
     tend_cvx = time.time()
     print("CVX runtime: "+str(tend_cvx-tstart_cvx))
-else:
-    print("not running cvx")
+
 print("=========================")
 print("Running projective splitting one-forward-step backtrack... (ps1fbt)")
 
@@ -228,8 +239,6 @@ print_results("tseng-pd", outTseng.times[-1], outTseng.x, outTseng.grad_evals)
 print("total Runtime for all algorithms: "+str(time.time()-tBegin))
 print("=========================")
 print("plotting...")
-
-
 
 plt.plot(out1f.rhos)
 plt.plot(out2f.rhos,':')
