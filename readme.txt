@@ -70,9 +70,9 @@ To reproduce the exact experiments in the paper, run
 $ python reproduce.py
 The prompt will ask you to enter which problem to run, enter
 
-        'portfolio', 'group_lr', or 'rare_feature'
+        portfolio, group_lr, or rare_feature.
 
-including the quotation marks. After this, it will ask for the experiment, a number.
+After this, it will ask for the experiment, a number.
 For portfolio, there are 4 different experiments, for group_lr, 6, and for rare_feature
 there are 3.
 

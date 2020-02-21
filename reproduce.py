@@ -3,8 +3,11 @@ Run this script to reproduce the specific experiments in the paper. Follow the d
 '''
 
 import os
-
-which2run = input("Enter which problem to solve including quotes: \'portfolio\', \'group_lr\', or \'rare_feature\' >>> ")
+import sys
+if sys.version_info[0]==2:
+    which2run = raw_input("Enter which problem to solve: portfolio, group_lr, or rare_feature >>> ")
+else:
+    which2run = input("Enter which problem to solve: portfolio, group_lr, or rare_feature >>> ")
 
 print('you selected '+ which2run)
 if which2run=='portfolio':
@@ -16,7 +19,7 @@ elif which2run=='rare_feature':
 else:
     print('did not enter a correct problem, exiting')
     exit()
-whichExp = input("Enter which experiment to run from {"+(options)+"} >>> ")
+whichExp = int(input("Enter which experiment to run from {"+(options)+"} >>> "))
 print('you selected '+str(whichExp))
 
 if which2run=='portfolio':
