@@ -11,16 +11,16 @@ else:
 
 print('You selected '+ which2run)
 if which2run=='portfolio':
-    print('WARNING: running time on our machine for this experiment was 2.5 minutes,')
+    print('WARNING: running time on our machine for this experiment was about 2.5 minutes,')
     print('and it may be longer for you.')
     options = '1,2,3,4'
 elif which2run=='group_lr':
-    print('WARNING: running time on our machine for this experiment was 5 minutes,')
+    print('WARNING: running time on our machine for this experiment was about 5 minutes,')
     print('and it may be longer for you.')
     options = '1,2,3,4,5,6'
 elif which2run=='rare_feature':
-    print('WARNING: running time on our machine for this experiment was 30 minutes,')
-    print('and it may be longer for you.')
+    print('WARNING: running time on our machine for this experiment was about 30 minutes,')
+    print('and much longer for experiment #3; it may be longer for you.')
     options = '1,2,3'
 else:
     print('You did not enter a correct problem, exiting')
@@ -40,7 +40,7 @@ if which2run=='portfolio':
         os.system('python run_portfolio.py --dimension 10000 --deltar 1.5 --gamma1f 5 --gamma2f 10 \
                                 --betacp 0.5 --gammafrb 10 --gammatg 10')
     else:
-        print('You did not enter an experiment number of 1,2,3, or 4.  Exiting.')
+        print('You did not enter an experiment number 1, 2, 3, or 4.  Exiting.')
 elif which2run=='group_lr':
     if whichExp==1:
         os.system('python run_group_lr.py --lam1 0.05 --lam2 0.05 --dataset breastCancer \
@@ -62,7 +62,7 @@ elif which2run=='group_lr':
         os.system('python run_group_lr.py --lam1 1.0 --lam2 1.0 --gammatg 1e6 --gammafrb 1e6\
                                --betacp 1e-5 --iter 3000')
     else:
-        print('You did not enter an experiment number of 1,2,3,4,5,6.  Exiting.')
+        print('You did not enter an experiment number 1, 2, 3, 4, 5, or 6.  Exiting.')
 elif which2run=='rare_feature':
     if whichExp==1:
         os.system('python run_rare_feature.py --gamma1f 1.0 --iter 10000')
@@ -71,6 +71,6 @@ elif which2run=='rare_feature':
                                    --gammatg 1e4 --gammafrb 1e4 --iter 10000')
     elif whichExp==3:
         os.system('python run_rare_feature.py --lam 1e-1 --gamma1f 1e4 --gamma2f 1e5 \
-                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6 --iter 10000')
+                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6 --iter 30000')
     else:
-        print('You did not enter an experiment number of 1,2,3.  Exiting.')
+        print('You did not enter an experiment number 1, 2, or 3.  Exiting.')
