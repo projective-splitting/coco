@@ -10,9 +10,9 @@ The TripAdvisor data were kindly shared with us by Xiaohan Yan and Jacob Bien.
 [2] Yan, X., and Bien, J.: Rare Feature Selection in High Dimensions. arXiv
 preprint arXiv:1803.06675 (2018).
 
-The trip advisor data in R and Python format is also available at
-https://github.com/yanxht/TripAdvisorData.  In this repository, it is in Python
-format in the directory data/trip_advisor
+The TripAdvisor data in R and Python format are also available at
+https://github.com/yanxht/TripAdvisorData.  In this repository, these data are
+in Python format in the directory data/trip_advisor
 
 In addition to implementations of several variants of projective splitting,
 this repository also includes implementations of
@@ -32,7 +32,7 @@ this repository also includes implementations of
       monotone inclusions without cocoercivity. arXiv preprint
       arXiv:1808.04162 (2018)
 
-To run the experiments in [1]:
+To run the experiments similar to [1]:
 1. Ensure that Python and the Python packages numpy, scipy, matplotlib,
    and argpass are installed on your system.
 2. Navigate to the directory you would like to save the data and issue
@@ -52,9 +52,9 @@ To run the experiments in [1]:
     To run the rare feature selection experiment:
     $ python run_rare_feature.py
 
-  These scripts will run one of the parameter settings studied in the paper.
-  Other parameter values may be tested by modifying the parameters from
-  the command line.
+  These scripts will run one of the parameter settings studied in the paper,
+  with the possible exception of the iteration limit. Other parameter values
+  may be tested by modifying the parameters from the command line.
 
   Whenever a plot is displayed, the matplotlib package script will wait for
   you to close the plot before proceeding (you may save it first).
@@ -67,14 +67,19 @@ $ python run_group_lr.py -h
 $ python run_rare_feature.py -h
 
 To reproduce the exact experiments in the paper, run
+
 $ python reproduce.py
-The prompt will ask you to enter which problem to run, enter
 
-        portfolio, group_lr, or rare_feature.
+A prompt will ask you to enter which problem to run.  In response to this prompt,
+enter one of the following:
 
-After this, it will ask for the experiment, a number.
-For portfolio, there are 4 different experiments, for group_lr, 6, and for rare_feature
-there are 3.
+        portfolio
+        group_lr
+        rare_feature.
+
+After this, it will ask for the experiment and a number. For portfolio, there
+are 4 different experiments, for group_lr, 6, and for rare_feature there are
+3.
 
 Following are the specific commands required to reproduce each of the plots in
 [1]. (To save typing them in, you can run reproduce.py as above.)
