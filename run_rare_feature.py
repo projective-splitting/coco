@@ -16,7 +16,6 @@ import algorithms as algo
 import time
 from matplotlib import pyplot as plt
 import scipy.sparse as sp
-import scipy.sparse.linalg as ln
 import argparse
 
 tAbsolutestart = time.time()
