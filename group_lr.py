@@ -103,6 +103,13 @@ def create_all_funcs(A,y,Partitions,lam2s,lam_L1):
     def theGrad(x):
         return LRgrad(A,x,y)
 
+    [n,d] = A.shape
+    def theGrad1(x):
+        return LRgrad(A[0:int(n/2)],x,y[0:int(n/2)])
+
+    def theGrad2(x):
+        return LRgrad(A[int(n/2):n],x,y[int(n/2):n])
+
     def theGrad_smart(x):
         return LRgrad_smart(A,x,y)
 
@@ -145,4 +152,4 @@ def create_all_funcs(A,y,Partitions,lam2s,lam_L1):
 
     return [theGrad,theGrad_smart,the_grad_smart_for_mal,theFunc,lrFunc_smart_alt,lrFunc,
             the_func_smart_for_mal,proxg_for_mal,proxfstar4tseng,
-            proxgstar4tseng,prox_L1,group_prox]
+            proxgstar4tseng,prox_L1,group_prox,theGrad1,theGrad2]

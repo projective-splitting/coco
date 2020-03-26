@@ -26,11 +26,33 @@ class InitPoint:
 ###################################################
 #       Algorithms #
 ###################################################
+def proj2hplane(z,x1,y1,w,x2,y2,adaptive_gamma,gamma,rho1):
+    # project to hplane
+    phi = (z - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + w)
+    gradz = y1 + y2
+    gradw = x1 - x2
 
+    normgradz = np.linalg.norm(gradz)
+    normgradw = np.linalg.norm(gradw)
+
+    if adaptive_gamma == "Lipschitz":
+        gamma = rho1**(-2)
+    elif adaptive_gamma == "oldBalanced":
+        gamma = normgradz /normgradw
+    elif adaptive_gamma == "newBalanced":
+        gamma = (normgradz /normgradw)**2
+
+
+    normGradsq = gamma ** (-1) * normgradz ** 2 + normgradw ** 2
+    if (normGradsq > 1e-20):
+        z = z - gamma ** (-1) * (phi / normGradsq) * gradz
+        w = w - (phi / normGradsq) * gradw
+
+    return [z,w,gamma]
 
 def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
             rho1=1.0,rho2=1.0,gamma=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease=1.0,
-            equalRho=True,verbose=True):
+            equalRho=True,verbose=True,adaptive_gamma = False):
     '''
     The algorithm proposed in this paper. projective splitting with one-forward-step.
     This variant features backtracking on the smooth loss.
@@ -88,6 +110,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
     for k in range(iter):
         if (k%100==0) & verbose:
             print('iter '+str(k))
+            print('gamma '+str(gamma))
 
         tstartiter = time.time()
 
@@ -105,19 +128,12 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
         if equalRho:
             rho2 = rho1
 
+
         t2 = z - rho2 * w
         x2 = theProx2(t2,rho2)
         y2 = (1 / rho2) * (t2 - x2)
 
-        # project to hplane
-        phi = (z - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + w)
-        gradz = y1 + y2
-        gradw = x1 - x2
-        normGradsq = gamma ** (-1) * np.linalg.norm(gradz) ** 2 + np.linalg.norm(gradw) ** 2
-
-        if (normGradsq > 1e-20):
-            z = z - gamma ** (-1) * (phi / normGradsq) * gradz
-            w = w - (phi / normGradsq) * gradw
+        [z,w,gamma] = proj2hplane(z,x1,y1,w,x2,y2,adaptive_gamma,gamma,rho1)
 
         phi_1 = (z - x1).T.dot(y1 - w)
 
@@ -133,6 +149,8 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
             posErr = -min([min(x1),0])
             hyperErr = hyper_resid(x1)
             constraintsErr.append(simplError+posErr+hyperErr)
+
+    primal_dual_norm_ratio = True
 
     out = Results()
     out.fz = fz
@@ -292,19 +310,21 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
     return out
 
-
-
-
-def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
+def PS2f_bt_symmsplit(theFunc,theGrad1,theGrad2,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
-            equalRho=True,verbose=True):
+            equalRho=True,verbose=True,adaptive_gamma=False):
     '''
-    projective splitting with two forward steps and backtracking.
+    XX
+    In the symmsplit version, the objective is of the form
+    min_x f_1(x)+g_1(x) + f_2(x)+g_2(x)
+    where f_1 and f_2 are smooth and evaluated via gradients and g_1 and g_2 are nonsmooth
+    and evaluated by proximal operators.
     parameters:
         theFunc: method of one numpy array input to evaluate the objective function
         theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
         theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
-        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        theGrad1: method with one numpy array input to evaluate the gradient of the first smooth function
+        theGrad2: method with one numpy array input to evaluate the gradient of the second smooth function
         init: init point, an object of the class InitPoint
         iter: num iterations
         rho1, rho2: stepsize
@@ -342,19 +362,23 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
     for k in range(iter):
         if (k%100==0) & verbose:
             print("iter: "+str(k))
+            #print("gamma: "+str(gamma))
+
         tstartiter = time.time()
         rho1 = rho1*stepIncrease
-        [x1,y1,rho1,gradsNew] = bt_2f(z,rho1,w,theProx1,theGrad,Delta,stepDecrease)
+        [x1,y1,rho1,gradsNew] = bt_2f(z,rho1,w,theProx1,theGrad1,Delta,stepDecrease)
         gradsRunning +=gradsNew
         gradEvals.append(gradsRunning)
         rhosBT.append(rho1)
 
-        if equalRho:
-            rho2 = rho1
+        #t2 =  z - rho2 * w
+        #x2 = theProx2(t2,rho2)
+        #y2 = (1 / rho2) * (t2 - x2)
 
-        t2 =  z - rho2 * w
-        x2 = theProx2(t2,rho2)
-        y2 = (1 / rho2) * (t2 - x2)
+        [x2,y2,rho2,_] = bt_2f(z,rho2,-w,theProx2,theGrad2,Delta,stepDecrease)
+
+        if adaptive_gamma:
+            gamma = 0.5*(rho1**(-2) + rho1**(-2))
 
         phi = (z - x1).T.dot(y1 - w) + (z - x2).T.dot(y2 + w)
         gradz = y1 + y2
@@ -376,6 +400,99 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             hyperErr = hyper_resid(x1)
             constraintErr.append(simplError+posErr+hyperErr)
 
+
+    out = Results()
+    out.fz = fz
+    out.fx1 = fx1
+    out.fx2 = []
+    out.z = z
+    out.x1 = x1
+    out.x2 = x2
+    out.grad_evals = gradEvals
+    out.times = np.array(times[1:len(times)])-times[1]
+    out.constraints = constraintErr
+    out.rhos = rhosBT
+    return out
+
+
+def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
+            gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
+            equalRho=True,verbose=True, adaptive_gamma = False):
+    '''
+    projective splitting with two forward steps and backtracking. Solves
+    min_x f(x)+g_1(x) + g_2(x)
+    where f is smooth and evaluated via gradients and g_1 and g_2 are nonsmooth
+    and evaluated via proxes.
+    parameters:
+        theFunc: method of one numpy array input to evaluate the objective function
+        theProx1: method with one numpy array input and one stepsize input to evaluate the prox of the first function
+        theProx2: method with one numpy array input and one stepsize input to evaluate the prox of the second function
+        theGrad: method with one numpy array input to evaluate the gradient of the smooth function
+        init: init point, an object of the class InitPoint
+        iter: num iterations
+        rho1, rho2: stepsize
+        gamma: primal-dual constant
+        Delta: constant used in the backtracking linesearch
+        stepDecrease: how much to decrease the stepsize by in backtracking linesearch
+        stepIncrease: how much to increase the stepsize prior to backtracking
+        equalRho: If True, set the nonbacktracked stepsizes equal to the backtracked ones
+        hyper_resid: method for computing the hyperplane residual in the portfolio opt problem, else equal to -1.
+        adaptive_gamma: If set to "Lipschitz", "oldBalanced", or "newBalanced", uses an adaptive procedure for selecting gamma
+    Outputs:
+        fz: list of objective function evaluations per iteration at z
+        fx2:list of objective function evaluations per iteration at x2
+        fx1: empty list, not used in this function, included for consistency wrt compareZandX() defined below
+        z: Final value of z
+        x1: Final value of x1
+        x2: Final value of x2
+        rhos: list of stepsizes used per iteration
+        grad_evals: list counting cumulative gradient evaluations
+        times: list counting cumulative elapsed times per iteration
+        constraints: For portfolio opt (hyper_resid!=-1), list containing constraint violations per iteration, else empty.
+    '''
+    z = init.z
+    w = init.w
+
+    fx1 = []
+    fz = []
+    gradEvals = []
+    gradsRunning = 0
+    times = [0]
+    rhosBT = []
+    constraintErr = []
+
+    for k in range(iter):
+        if (k%100==0) & verbose:
+            print("iter: "+str(k))
+            #print("gamma: "+str(gamma))
+        tstartiter = time.time()
+        rho1 = rho1*stepIncrease
+        [x1,y1,rho1,gradsNew] = bt_2f(z,rho1,w,theProx1,theGrad,Delta,stepDecrease)
+        gradsRunning +=gradsNew
+        gradEvals.append(gradsRunning)
+        rhosBT.append(rho1)
+
+        if equalRho:
+            rho2 = rho1
+
+        t2 =  z - rho2 * w
+        x2 = theProx2(t2,rho2)
+        y2 = (1 / rho2) * (t2 - x2)
+
+        [z,w,gamma] = proj2hplane(z,x1,y1,w,x2,y2,adaptive_gamma,gamma,rho1)
+
+        tenditer = time.time()
+
+        times.append(times[-1]+tenditer-tstartiter)
+        fx1.append(theFunc(x1))
+        fz.append(theFunc(z))
+        if hyper_resid != -1:
+            simplError = abs(sum(x1) - 1.0)
+            posErr = -min([min(x1), 0])
+            hyperErr = hyper_resid(x1)
+            constraintErr.append(simplError+posErr+hyperErr)
+
+    primal_dual_norm_ratio = True
 
     out = Results()
     out.fz = fz

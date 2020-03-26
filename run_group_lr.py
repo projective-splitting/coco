@@ -46,6 +46,7 @@ parser.add_argument('--initial_stepsize',type=float,default=1e-1,dest='initial_s
 print('########################')
 print('group lr experiment')
 print('########################')
+gamma2fss = 1.0
 lam1 = parser.parse_args().lam1
 print('lam1 = '+str(lam1))
 lam2 = parser.parse_args().lam2
@@ -90,8 +91,9 @@ print("Data loaded successfully.")
 
 [n,d] = A.shape
 
-print("number of genes: "+str(d))
-print("number of groups: "+str(len(Partitions)))
+print("number of observations: "+str(n))
+print("number of genes (features): "+str(d))
+print("number of groups of genes: "+str(len(Partitions)))
 print("av genes per group: "+str(sum([len(parts) for parts in Partitions])/float(len(Partitions))))
 
 print("normalizing columns of A to unit norm")
@@ -109,7 +111,7 @@ lam2s = lam2*np.ones(len(Partitions))
 # and function evals
 [theGrad,theGrad_smart,the_grad_smart_for_cp,theFunc,lrFunc_smart,lrFunc,
         the_func_smart_for_cp,proxg_for_cp,proxfstar4tseng,
-        proxgstar4tseng,prox_L1,group_prox]\
+        proxgstar4tseng,prox_L1,group_prox,theGrad1,theGrad2]\
          = gp.create_all_funcs(A,y,Partitions,lam2s,lam1)
 
 
@@ -133,14 +135,14 @@ print_results("ada3op",out3op.x,out3op.times[-1])
 
 print("running 1fbt...")
 init =algo.InitPoint(np.zeros(d+1),np.zeros(d+1),np.zeros(d+1),np.zeros(d+1))
-out1f = algo.PS1f_bt(theFunc,prox_L1,group_prox,theGrad,init,gamma = gamma1f,
+out1f = algo.PS1f_bt(theFunc,prox_L1,group_prox,theGrad,init,gamma = gamma1f,adaptive_gamma = False,
                      stepIncrease = step_increase,iter=iter,rho1=initial_stepsize)
 print_results("ps1fbt",out1f.x1,out1f.times[-1])
 
 
 print("running 2fbt...")
 init =algo.InitPoint([],[],np.zeros(d+1),np.zeros(d+1))
-out2f = algo.PS2f_bt(theFunc,theGrad,prox_L1,group_prox,init,iter=iter,
+out2f = algo.PS2f_bt(theFunc,theGrad,prox_L1,group_prox,init,iter=iter, adaptive_gamma = False,
                      gamma=gamma2f,stepIncrease = step_increase,rho1=initial_stepsize)
 
 print_results("ps2fbt",out2f.x1,out2f.times[-1])
@@ -197,6 +199,8 @@ plt.plot(outcp.times,outcp.f)
 plt.plot(outTseng.times,outTseng.f)
 plt.plot(outFRB.times,outFRB.f)
 
+
+
 plt.plot(out3op.times,opt*np.ones(len(out3op.times)))
 plt.legend(['1fbt','2fbt','3opBT','cpbt','tseng','frb'])
 plt.xlabel('time (s) excluding time to evaluate objective')
@@ -218,6 +222,7 @@ plt.semilogy(out3op.times[0:int(iter_frac*len(out3op.times))], (np.array(out3op.
 plt.semilogy(outcp.times[0:int(iter_frac*len(outcp.times))], (np.array(outcp.f[0:int(iter_frac*len(outcp.times))]) - opt) / opt,'s-',markevery = markFreq,markersize =markerSz)
 plt.semilogy(outTseng.times[0:int(iter_frac*len(outTseng.times))], (np.array(outTseng.f[0:int(iter_frac*len(outTseng.times))]) - opt) / opt,'x-',markevery = markFreq,markersize =markerSz)
 plt.semilogy(outFRB.times[0:int(iter_frac*len(outFRB.times))],(np.array(outFRB.f[0:int(iter_frac*len(outFRB.times))]) - opt) / opt,'D-',markevery = markFreq,markersize =markerSz)
+
 
 
 plt.legend(['ps1fbt','ps2fbt','ada3op','cp-bt','tseng-pd','frb'],fontsize='large')

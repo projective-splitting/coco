@@ -187,13 +187,14 @@ print("Running projective splitting one-forward-step backtrack... (ps1fbt)")
 
 initPoint = algo.InitPoint(np.ones(d)/d,np.ones(d)/d,np.ones(d)/d,np.zeros(d))
 out1f = algo.PS1f_bt(theFunc,theProx1,theProx2,theGrad,initPoint,gamma=gamma1f,
-                    hyper_resid=hyper_resid,verbose=verbose,iter=iter)
+                    hyper_resid=hyper_resid,verbose=verbose,iter=iter,adaptive_gamma = False)
 
 print_results("1fbt", out1f.times[-1], out1f.x1, out1f.grad_evals)
 
 print("=========================")
 print("running forward reflected backward (primal-dual)... (frb-pd)")
 x0 = np.ones(d)/d
+
 init = algo.InitPoint([],[],np.ones(d)/d,np.zeros(d))
 outfrb = algo.for_reflect_back(theFunc,proxfstar4Tseng,proxgstar4Tseng,theGrad,init,
                                 gamma0=gamma_frb,gamma1=gamma_frb,iter=iter,
@@ -212,7 +213,7 @@ print("=========================")
 print("Running projective splitting two-forward-step with backtrack... (ps2fbt)")
 init = algo.InitPoint([],[],np.ones(d)/d,np.zeros(d))
 out2f = algo.PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,gamma=gamma2f,
-                    hyper_resid=hyper_resid,verbose=verbose,iter=iter)
+                    hyper_resid=hyper_resid,verbose=verbose,iter=iter,adaptive_gamma = False)
 print_results("2fbt", out2f.times[-1], out2f.x1, out2f.grad_evals)
 
 print("=========================")
