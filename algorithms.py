@@ -110,7 +110,7 @@ def PS1f_bt(theFunc,theProx1,theProx2,theGrad,init,iter=1000,alpha=0.1,
     for k in range(iter):
         if (k%100==0) & verbose:
             print('iter '+str(k))
-            print('gamma '+str(gamma))
+            #print('gamma '+str(gamma))
 
         tstartiter = time.time()
 
