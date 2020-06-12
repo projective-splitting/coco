@@ -417,7 +417,7 @@ def PS2f_bt_symmsplit(theFunc,theGrad1,theGrad2,theProx1,theProx2,init,iter=1000
 
 def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
-            equalRho=True,verbose=True, adaptive_gamma = False):
+            equalRho=True,verbose=True, adaptive_gamma = False):    
     '''
     projective splitting with two forward steps and backtracking. Solves
     min_x f(x)+g_1(x) + g_2(x)
@@ -492,7 +492,6 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             hyperErr = hyper_resid(x1)
             constraintErr.append(simplError+posErr+hyperErr)
 
-    primal_dual_norm_ratio = True
 
     out = Results()
     out.fz = fz
