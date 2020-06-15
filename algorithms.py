@@ -209,7 +209,12 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     '''
     The algorithm proposed in this paper. projective splitting with one-forward-step.
     Essentially the same as PS1f_bt() defined above, however this variant allows for composition
-    with a linear operator as in the rare feature selection problem. So it solves
+    with a linear operator as in the rare feature selection problem. Note we implement PS1f_bt separately
+    only for simplicity. We could have just implemented PS1f_bt_comp and applied it to problems
+    without linear operators by passing in an identity method/operator, but we thought
+    this was easier to understand. 
+    
+    It solves
     min_x f_1(Gx)+f_2(x)+h_2(x)
     parameters:
         theFunc: method of one numpy array input to evaluate the objective function
