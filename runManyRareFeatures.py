@@ -36,9 +36,7 @@ tAbsoluteStart = time.time()
 
 path2data = 'data/trip_advisor/'
 
-#maxIterG = 50000
-maxIterG = 50
-
+maxIterG = 50000
 maxIterCP = 10000
 
 loss = "log"
@@ -77,7 +75,8 @@ for i in range(len(lams)):
     #out1f = algo.PS1f_bt_comp(init,maxIter,G,theProx1,theProx2,
     #                      theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=False,verbose=False)
 
-    if False :
+    runTseng=True
+    if runTseng :
         print("Tseng")
         init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
         outtseng = algo.tseng_product(theFunc, proxfstar_4_tseng, proxg, theGrad, init,verbose=True,
@@ -85,13 +84,15 @@ for i in range(len(lams)):
                                       gamma2=tsengs[i],G=G,Gt=Gt,historyFreq=20)
 
 
-    if False :
+    runFRB = True
+    if runFRB :
         print("FRB")
         outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=maxIterCP,
                                gamma0=frbs[i],gamma1=frbs[i],G=G,Gt=Gt,verbose=True,
                                getFuncVals=True,historyFreq=20)
 
-    if False :
+    runCP = True
+    if runCP :
         print("cp")
         stepIncAmount = 1.0
         #stepIncAmount = 1.1
@@ -110,7 +111,8 @@ for i in range(len(lams)):
         loss2use = 2
         backProcess = lp.BackwardCG()
 
-    if False :
+    run2fembed=True
+    if run2fembed :
         print("2f_embed")
         gamma2fembed = gamma2fembeds[i]
         t0 = time.time()
@@ -153,7 +155,8 @@ for i in range(len(lams)):
         print(f"ps1fembed total running time {t1-t0}")
         getSparsity(psObj.getSolution(),H,plot=True)
 
-    if False :
+    runPSB_g = True
+    if runPSB_g :
         print("psb_g")
         gammabg = gammabgs[i]
         t0 = time.time()
@@ -165,14 +168,15 @@ for i in range(len(lams)):
         G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],
                                      rmatvec = lambda x : np.concatenate((x,np.array([0]))))
         psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
-        psObj.run(nblocks=10,maxIterations=maxIterG,verbose=True,keepHistory=True,historyFreq=20,
+        psObj.run(nblocks=10,maxIterations=maxIterG,verbose=True,keepHistory=True,historyFreq=100,
                           primalTol=0.0,dualTol=0.0)
         fpsbg = psObj.getHistory()[0]
         tpsbg = psObj.getHistory()[1]
         t1 = time.time()
         print(f"psb_g total running time {t1-t0}")
 
-    if True :
+    run2f_embed_g = True
+    if run2f_embed_g :
         print("ps2f_embed_g")
         gamma2fembed = gamma2fembeds[i]
         t0 = time.time()
@@ -224,36 +228,40 @@ for i in range(len(lams)):
     saveResults = True
     if saveResults:
         import pickle
-        if loss == "log":
-            with open('saved_results_log_'+str(lam),'rb') as file:
-                cache = pickle.load(file)
+        getOld = True
+        if getOld:
+            if loss == "log":
+                with open('saved_results_log_'+str(lam),'rb') as file:
+                    cache = pickle.load(file)
+            else:
+                with open('saved_results_'+str(lam),'rb') as file:
+                    cache = pickle.load(file)
         else:
-            with open('saved_results_'+str(lam),'rb') as file:
-                cache = pickle.load(file)
 
-        #cache = {}
+            cache = {}
 
         #cache['out1f'] = out1f
         #cache['out2f'] = out2f
 
-        #cache['outfrb']= outfrb
-        #cache['outtseng']=outtseng
-        cache['history_2fg']=history_2fg
-        cache['z_2fg'] = z_2fg
+        if runFRB:
+            cache['outfrb']= outfrb
+        if runTseng:
+            cache['outtseng']=outtseng
+        if run2f_embed_g:
+            cache['history_2fg']=history_2fg
+            cache['z_2fg'] = z_2fg
+
         #cache['t_ps2fembed_c']=t_ps2fembed_c
         #cache['f_ps2fembed_c']=f_ps2fembed_c
+        if runPSB_g:
+            cache['f_psbg']=fpsbg
+            cache['t_psbg']=tpsbg
+        if runCP:
+            cache['outcp'] = outcp
 
-        #cache['f_psbg']=fpsbg
-        #cache['t_psbg']=tpsbg
-
-        #cache['outcp'] = outcp
-
-        #cache['f_ps1fembed'] = f_ps1fembed
-        #cache['t_ps1fembed'] = t_ps1fembed
-        #cache['f_ps2fembed'] = f_ps2fembed
-        #cache['t_ps2fembed'] = t_ps2fembed
-
-
+        if run2fembed:
+            cache['f_ps2fembed'] = f_ps2fembed
+            cache['t_ps2fembed'] = t_ps2fembed
 
         if loss == "log":
             with open('saved_results_log_'+str(lam),'wb') as file:

@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 from matplotlib import pyplot as plt
 
-lam = 1e-4
+lam = 1e-8
 loss = "log"
 if loss == "log":
     with open('saved_results_log_'+str(lam),'rb') as file:
@@ -22,6 +22,10 @@ t_psbg = cache['t_psbg']
 #plt.plot(outcp.y)
 #plt.title('cp output')
 #plt.show()
+print("================")
+print("================")
+print("================")
+print("classification errors...")
 
 
 print("================")
