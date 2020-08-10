@@ -10,12 +10,21 @@ To see what parameters can be set from the command line, run
 $python run_rare_feature.py -h
 This code has been tested with python2.7 and python3.5.
 '''
+import sys
+sys.path.append('../sphinx_projSplitFit/projSplitFit/')
+import projSplit as ps
+import regularizers
+import lossProcessors as lp
+import scipy.sparse.linalg as sl
 
 import numpy as np
 import algorithms as algo
 import time
 from matplotlib import pyplot as plt
 import scipy.sparse as sp
+
+from scipy.sparse.linalg import norm as sparse_norm
+
 import argparse
 
 tAbsolutestart = time.time()
@@ -25,8 +34,16 @@ parser.add_argument('--lam',type=float,default=1e-5,dest='lam',
                     help = 'reg parameter, default 1e-5',metavar='lam')
 parser.add_argument('--mu',type=float,default=0.5,dest='mu',
                     help = 'reg parameter, default 0.5',metavar='mu')
-parser.add_argument('--iter',type=int,default=500,dest='iter',
-                    help = 'num iterations, same for all algorithms, default 1000',metavar='iter')
+parser.add_argument('--iter',type=int,default=10,dest='iter',
+                    help = 'num iterations, same for all algorithms',metavar='iter')
+
+
+parser.add_argument('--gamma2fg',type=float,default=1e0,dest='gamma2fg',
+                    help = 'primal-dual tuning parameter for ps2fbt_greedy, default 1.0',metavar='gamma2fg')
+parser.add_argument('--gammabg',type=float,default=1e0,dest='gammabg',
+                    help = 'primal-dual tuning parameter for psbg, default 1.0',metavar='gammabg')
+
+
 parser.add_argument('--gamma1f',type=float,default=1e1,dest='gamma1f',
                     help = 'primal-dual tuning parameter for ps1fbt, default 10.0',metavar='gamma1f')
 parser.add_argument('--gamma2f',type=float,default=1e2,dest='gamma2f',
@@ -54,6 +71,10 @@ gamma1f = parser.parse_args().gamma1f
 print('gamma1f = '+str(gamma1f))
 gamma2f = parser.parse_args().gamma2f
 print('gamma2f = '+str(gamma2f))
+gamma2fg = parser.parse_args().gamma2fg
+print('gamma2fg = '+str(gamma2fg))
+gammabg = parser.parse_args().gammabg
+print('gammabg = '+str(gammabg))
 gammatg = parser.parse_args().gammatg
 print('gammatg = '+str(gammatg))
 gammafrb = parser.parse_args().gammafrb
@@ -87,6 +108,7 @@ y = y_train
 S = S_train
 n = n_train
 
+
 print("Adding all ones column to train/test matrix for offset/intercept...")
 onesCol = np.ones([n,1])
 onesCol = sp.csc_matrix(onesCol)
@@ -104,7 +126,8 @@ zerosCol = np.zeros([p,1])
 zerosCol = sp.csc_matrix(zerosCol)
 S_A = sp.hstack([zerosCol,S_A],format='csc')
 zerosButOneRow = np.zeros([1,d+1])
-zerosButOneRow[0]=1.0
+zerosButOneRow[0,0]=1.0
+
 zerosButOneRow = sp.csc_matrix(zerosButOneRow)
 S_A = sp.vstack([zerosButOneRow,S_A],format='csc')
 
@@ -122,6 +145,8 @@ print("d is "+str(d))
 print("p is "+str(p))
 print("density of S: "+str(S.count_nonzero()/(n*float(p))))
 print("density of S_A: "+str(S_A.count_nonzero()/(p*float(d))))
+
+
 
 
 #################################################################################
@@ -176,9 +201,12 @@ def theFunc(x):
     evaluate the objective function
     '''
     Ax = S_A.dot(x)
+    loss = (1.0/(2*float(n)))*np.linalg.norm(y - S.dot(Ax),2)**2
+
     return lam*(1-mu)*np.linalg.norm(Ax[1:len(Ax)],1)\
             + lam*mu*np.linalg.norm(x[1:len(x)-1],1)\
-            + (1/(2*float(n)))*np.linalg.norm(y - S.dot(S_A.dot(x)),2)**2
+            + loss
+
 
 def hfunc(x):
     '''
@@ -195,13 +223,17 @@ def theGradSmart(Matx):
     return (1/float(n))*S_A_t.dot(Stranspose.dot(Matx-y))
 
 ################## Run Algorithms ##############################################
+iterOverwrite=1
 print("================")
 print("================")
 print("================")
 print("running 1fbt...")
 init = algo.InitPoint([],np.zeros(d),np.zeros(d),np.zeros(p))
 out1f = algo.PS1f_bt_comp(init,iter,G,theProx1,theProx2,
-                          theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=False)
+                          theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=True)
+
+print(f"Final func value for PS1f_bt_comp is {out1f.fx2[-1]}")
+
 print("1f TOTAL running time: "+str(out1f.times[-1]))
 print("================")
 
@@ -209,15 +241,17 @@ print("running 2fbt...")
 # Since ps2fbt computes two forward steps per iteration, only run it for half as
 # many iterations to get similar times to the other methods.
 init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
-out2f = algo.PS2f_bt_comp(init,int(0.5*iter),G,theProx1,theProx2,theGrad,Gt,
+# before : int(0.5*iter)
+out2f = algo.PS2f_bt_comp(init,iterOverwrite,G,theProx1,theProx2,theGrad,Gt,
                           theFunc,gamma=gamma2f,equalRhos=False,rho1=1e1)
 # note that rho1 for ps2f_bt_comp is set to 1e1 for all the rare feature experiments
 print("2f TOTAL running time: "+str(out2f.times[-1]))
 print("================")
 
 print("running cp-bt...")
+
 init = algo.InitPoint(np.zeros(d),np.zeros(p),[],[])
-outcp = algo.cpBT(theProx2, theGradSmart, proxg, theFunc, hfunc, init, iter=iter,
+outcp = algo.cpBT(theProx2, theGradSmart, proxg, theFunc, hfunc, init, iter=iterOverwrite,
                   beta=betacp,stepInc=1.1,K=Gt,Kstar=G)
 print("cp-bt TOTAL running time: "+str(outcp.times[-1]))
 print("================")
@@ -227,15 +261,57 @@ print("running tseng...")
 # many iterations to get similar times to the other methods.
 init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
 outtseng = algo.tseng_product(theFunc, proxfstar_4_tseng, proxg, theGrad, init,
-                              iter=int(0.5*iter), gamma1=gammatg,gamma2=gammatg,G=G,Gt=Gt)
+                              iter=iterOverwrite, gamma1=gammatg,gamma2=gammatg,G=G,Gt=Gt)
 print("TOTAL tseng time: "+str(outtseng.times[-1]))
 print("================")
 
 print("running frb...")
-outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=iter,
+outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=iterOverwrite,
                                gamma0=gammafrb,gamma1=gammafrb,G=G,Gt=Gt)
 print("frb running time: "+str(outfrb.times[-1]))
 print("================")
+
+print("running ProjSplitFit")
+X = sp.load_npz('data/trip_advisor/S_train.npz') # training matrix
+H = sp.load_npz('data/trip_advisor/S_A.npz')     # this matrix is called H
+y = np.load('data/trip_advisor/y_train.npy')     # training labels
+
+f_ps2fg = []
+t_ps2fg = []
+f_psbg = []
+t_psbg = []
+for erg in [False,'simple','weighted']:
+    t0 = time.time()
+    psObj = ps.ProjSplitFit(gamma2fg)
+    psObj.addData(X,y,2,linearOp=H,normalize=False,process=lp.Forward2Backtrack())
+    psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
+    (nbeta,ngamma) = H.shape
+    shape = (ngamma-1,ngamma)
+    G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],rmatvec = lambda x : np.concatenate((x,np.array([0]))))
+    psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
+    psObj.run(nblocks=10,maxIterations=iterOverwrite,verbose=False,keepHistory=True,historyFreq=1,
+                      primalTol=0.0,dualTol=0.0,ergodic=erg)
+    f_ps2fg.append(psObj.getHistory()[0])
+    t_ps2fg.append(psObj.getHistory()[1])
+    t1 = time.time()
+    print(f"ps2fbt_g total running time {t1-t0}")
+
+    t0 = time.time()
+    psObj = ps.ProjSplitFit(gammabg)
+    psObj.addData(X,y,2,linearOp=H,normalize=False,process=lp.BackwardCG())
+    psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
+    (nbeta,ngamma) = H.shape
+    shape = (ngamma-1,ngamma)
+    G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],rmatvec = lambda x : np.concatenate((x,np.array([0]))))
+    psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
+    psObj.run(nblocks=10,maxIterations=iterOverwrite,verbose=False,keepHistory=True,historyFreq=1,
+                      primalTol=0.0,dualTol=0.0,ergodic=erg)
+    f_psbg.append(psObj.getHistory()[0])
+    t_psbg.append(psObj.getHistory()[1])
+    t1 = time.time()
+    print(f"psb_g total running time {t1-t0}")
+
+
 
 tol = 1e-3
 
@@ -338,3 +414,37 @@ zcomp = True
 if zcomp:
     algo.compareZandX(out1f,"1f")
     algo.compareZandX(out2f,"2f")
+
+
+saveResults = True
+if saveResults:
+
+    import pickle
+
+    with open('saved_results_'+str(lam),'rb') as file:
+        cache = pickle.load(file)
+
+
+    cache['out1f'] = out1f
+    #cache['out2f'] = out2f
+    #cachtfrb']= outfrb
+    #cache['cp'] = outcp
+    #cache['outtseng']=outtse1g
+    #cache['f_ps2fg']=f_ps2fg[1]
+    #cache['t_ps2fg']=t_ps2fg[0]
+    #cache['f_ps2fg_simp']=f_ps2fg[1]
+    #cache['t_ps2fg_simp']=t_ps2fg[1]
+    #cache['f_ps2fg_weight']=f_ps2fg[2]
+    #cache['t_ps2fg_weight']=t_ps2fg[2]
+
+    #cache['f_psbg']=f_psbg[0]
+    #cache['t_psbg']=t_psbg[0]
+    #cache['f_psbg_simp']=f_psbg[1]
+    #cache['t_psbg_simp']=t_psbg[1]
+    #cache['f_psbg_weight']=f_psbg[2]
+    #cache['t_psbg_weight']=t_psbg[2]
+
+
+
+    with open('saved_results_'+str(lam),'wb') as file:
+        pickle.dump(cache,file)

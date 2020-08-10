@@ -205,15 +205,15 @@ def bt_1f(alpha,x1,z,w,rho,b_old,theProx1,theGrad,y_old,phiOld,thetaHat,wHat,ste
 
 def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
                  rho1=1.0,rho2=1.0,alpha2=0.1,stepDecrease=0.7,equalRhos=True,
-                 gamma=1.0,stepIncrease=1.0):
+                 gamma=1.0,stepIncrease=1.0,getFuncVals=True,verbose=True):
     '''
     The algorithm proposed in this paper. projective splitting with one-forward-step.
     Essentially the same as PS1f_bt() defined above, however this variant allows for composition
     with a linear operator as in the rare feature selection problem. Note we implement PS1f_bt separately
     only for simplicity. We could have just implemented PS1f_bt_comp and applied it to problems
     without linear operators by passing in an identity method/operator, but we thought
-    this was easier to understand. 
-    
+    this was easier to understand.
+
     It solves
     min_x f_1(Gx)+f_2(x)+h_2(x)
     parameters:
@@ -260,12 +260,17 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     fz = []
     rho2s = []
 
+
     for k in range(iter):
         tstartiter = time.time()
-        if k%100==0:
+        if (k%100==0) and verbose:
             print("iter: "+str(k))
         if equalRhos:
+
             rho1 = rho2
+
+        #if k > 0:
+        #    print(f"func val {fx2[-1]}")
 
         Gz = G(z)
         t1 = Gz + rho1 * w
@@ -300,8 +305,9 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
         tfinishiter = time.time()
         times.append(times[-1]+tfinishiter-tstartiter)
-        fx2.append(theFunc(x2))
-        fz.append(theFunc(z))
+        if getFuncVals:
+            fx2.append(theFunc(x2))
+            fz.append(theFunc(z))
 
     out = Results()
     out.fx1 = []
@@ -311,6 +317,8 @@ def PS1f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     out.x2 = x2
     out.x1 = x1
     out.rhos = rho2s
+    out.finalFuncVal = theFunc(x2)
+
 
 
     return out
@@ -422,7 +430,7 @@ def PS2f_bt_symmsplit(theFunc,theGrad1,theGrad2,theProx1,theProx2,init,iter=1000
 
 def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
-            equalRho=True,verbose=True, adaptive_gamma = False):    
+            equalRho=True,verbose=True, adaptive_gamma = False):
     '''
     projective splitting with two forward steps and backtracking. Solves
     min_x f(x)+g_1(x) + g_2(x)
@@ -515,7 +523,7 @@ def PS2f_bt(theFunc,theGrad,theProx1,theProx2,init,iter=1000,rho1=1.0,rho2=1.0,
 
 def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
                  stepDec=0.7,stepUp=1.0,rho1 = 1.0,rho2=1.0,
-                 equalRhos=True,gamma=1.0,deltabt=1.0):
+                 equalRhos=True,gamma=1.0,deltabt=1.0,getFuncVals=True,verbose=True):
     '''
     This is the same as PS2f_bt() above except it allows for composition with a linear term
     as in the rare feature selection problem and so can solve problems of the form
@@ -557,7 +565,7 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     times = [0]
 
     for k in range(iter):
-        if k%100==0:
+        if (k%100==0) and verbose:
             print("iter: "+str(k))
         t0iter = time.time()
         if equalRhos:
@@ -588,8 +596,9 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
 
         tenditer = time.time()
         times.append(times[-1]+tenditer-t0iter)
-        fx2.append(theFunc(x2))
-        fz.append(theFunc(z))
+        if getFuncVals:
+            fx2.append(theFunc(x2))
+            fz.append(theFunc(z))
 
     out = Results()
     out.fz = fz
@@ -599,6 +608,7 @@ def PS2f_bt_comp(init,iter,G,theProx1,theProx2,theGrad,Gt,theFunc,
     out.x2 = x2
     out.times = np.array(times[1:len(times)])-times[1]
     out.rhos = rho2s
+    out.finalFuncVal = theFunc(x2)
 
     return out
 
@@ -735,7 +745,8 @@ def adap3op(proxg,gradf,f_smooth,theFunc,proxh,f_smooth_smart,init,stepIncrease 
 
 
 def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.99,
-         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.1,verbose=True,K=[],Kstar=[]):
+         beta=1.0,mu=0.7,hyper_resid=-1,stepInc=1.1,verbose=True,K=[],Kstar=[],
+         getFuncVals=True,historyFreq=1):
     '''
         Chambolle-Pock Primal Dual splitting with backtracking
         this algorithm solves the following optimization problem:
@@ -791,11 +802,12 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
     constraintErr = []
 
 
+    tstartIter = time.time()
     for k in range(iter):
         if (k%100==0) & verbose:
             print("iter: "+str(k))
 
-        tstartIter = time.time()
+
         xnext = proxg(x - tau * Kstary, tau)
         taunext = min([tau*np.sqrt(1+theta),stepInc*tau])
 
@@ -838,11 +850,16 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
         Kstary = KstarYnext
         yFunc = yFuncNext
 
-        tendIter = time.time()
-        times.append(times[-1]+tendIter-tstartIter)
-        func_evals.append(func_evals[-1]+newFuncEvals)
 
-        fy.append(Func(y))
+
+        func_evals.append(func_evals[-1]+newFuncEvals)
+        if getFuncVals and (k%historyFreq==0):
+            tendIter = time.time()
+            times.append(times[-1]+tendIter-tstartIter)
+            fy.append(Func(y))
+            tstartIter = time.time()
+
+
         if hyper_resid != -1:
             simplError = abs(sum(y) - 1.0)
             posErr = -min([min(y), 0])
@@ -856,13 +873,15 @@ def cpBT(proxfstar, gradH, proxg, Func, hfunc, init, iter=1000, tau=1.0,delta=0.
     out.f = fy
     out.func_evals = func_evals[1:len(func_evals)]
     out.grad_evals = grad_evals[1:len(func_evals)]
-    out.times = np.array(times[1:len(times)])-times[1]
+    out.times = np.array(times[1:len(times)])
     out.constraints = constraintErr
+    out.finalFuncVal = Func(y)
+
     return out
 
 def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1.0,
                   theta=0.99, stepIncrease=1.0, stepDecrease=0.7,hyper_resid=-1,
-                  gamma1=1.0,gamma2=1.0,verbose=True,G=[],Gt=[]):
+                  gamma1=1.0,gamma2=1.0,verbose=True,G=[],Gt=[],getFuncVals=True,historyFreq=1):
     '''
     Tseng applied to the primal-dual product-space form
     this instance is applied to min_x f(x) + g(x) + h(x)
@@ -910,13 +929,13 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
     grad_evals = [0]
     times = [0]
     constraintErr = []
-
+    tstartiter = time.time()
 
     for k in range(iter):
         if (k%100==0) & verbose:
             print("iter: "+str(k))
 
-        tstartiter = time.time()
+
         # compute Ap
         if G == []:
             Ap1 = -x
@@ -965,9 +984,13 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
         w1 = pbar[0] - gamma1 * alpha * (Apbar1 - Ap1)
         w2 = pbar[1] - gamma2 * alpha * (Apbar2 - Ap2)
         x = pbar[2] - alpha * (Apbar3 - Ap3)
-        tenditer = time.time()
-        times.append(times[-1]+tenditer-tstartiter)
-        Fx.append(theFunc(x))
+
+        if getFuncVals and (k%historyFreq==0):
+            tenditer = time.time()
+            times.append(times[-1]+tenditer-tstartiter)
+            Fx.append(theFunc(x))
+            tstartiter = time.time()
+
         grad_evals.append(grad_evals[-1]+newGrads)
 
         if hyper_resid!=-1:
@@ -983,8 +1006,9 @@ def tseng_product(theFunc, proxfstar, proxgstar, gradh, init, iter=1000, alpha=1
     out.x = x
     out.f = Fx
     out.grad_evals = grad_evals[1:len(grad_evals)]
-    out.times = np.array(times[1:len(times)])-times[1]
+    out.times = np.array(times[1:len(times)])
     out.constraints = constraintErr
+    out.finalFuncVal = theFunc(x)
     return out
 
 
@@ -1000,8 +1024,8 @@ def theBigProx(a, b, c, proxfstar,proxgstar,alpha,gamma1,gamma2):
 
 
 def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0,
-                     gamma1=1.0,lam=1.0,stepIncrease=1.0,delta=0.99,
-                     stepDecrease=0.7,hyper_resid=-1,verbose=True,G=[],Gt=[]):
+                     gamma1=1.0,lam=1.0,stepIncrease=1.0,delta=0.99,getFuncVals=True,
+                     stepDecrease=0.7,hyper_resid=-1,verbose=True,G=[],Gt=[],historyFreq=1):
     '''
         Apply the forward-reflected-backward method to the same primal-dual product-space inclusion
         as we did for Tseng-pd.
@@ -1062,11 +1086,12 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
 
 
     constraintErr = []
+    tstartIter = time.time()
 
     for k in range(iter):
         if (k%100==0) & verbose:
             print("iter: "+str(k))
-        tstartIter = time.time()
+
 
         doBackTrack = True
         newGrads = 0
@@ -1116,9 +1141,14 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
         lamOld = lam
         lam = stepIncrease * lam
 
-        tendIter = time.time()
-        times.append(times[-1] + tendIter-tstartIter)
-        F.append(theFunc(x))
+
+        if getFuncVals and k%historyFreq==0:
+            tendIter = time.time()
+            times.append(times[-1] + tendIter-tstartIter)
+            F.append(theFunc(x))
+            tstartIter = time.time()
+
+
         if hyper_resid!=-1:
             simplError = abs(sum(x) - 1.0)
             posErr = -min([min(x), 0])
@@ -1132,9 +1162,10 @@ def for_reflect_back(theFunc,proxfstar,proxgstar,gradh,init,iter=1000,gamma0=1.0
     out = Results()
     out.x = x
     out.f = F
-    out.times = np.array(times[1:len(times)])-times[1]
+    out.times = np.array(times[1:len(times)])
     out.grad_evals = grad_evals[1:len(grad_evals)]
     out.constraints = constraintErr
+    out.finalFuncVal = theFunc(x)
 
     return out
 

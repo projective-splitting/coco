@@ -71,6 +71,6 @@ elif which2run=='rare_feature':
                                    --gammatg 1e4 --gammafrb 1e4 --iter 10000')
     elif whichExp==3:
         os.system('python run_rare_feature.py --lam 1e-1 --gamma1f 1e4 --gamma2f 1e5 \
-                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6 --iter 30000')
+                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6 --iter 5000')
     else:
         print('You did not enter an experiment number 1, 2, or 3.  Exiting.')
