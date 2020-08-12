@@ -1,62 +1,131 @@
 import numpy as np
 import pickle
 from matplotlib import pyplot as plt
-
-lam = 1e-8
-loss = "log"
-if loss == "log":
-    with open('saved_results_log_'+str(lam),'rb') as file:
-        cache = pickle.load(file)
-else:
-    with open('saved_results_'+str(lam),'rb') as file:
-        cache = pickle.load(file)
-
-outcp = cache.get('cp')
-if outcp is None:
-    outcp = cache['outcp']
-
-f_psbg = cache['f_psbg']
-t_psbg = cache['t_psbg']
+import scipy.sparse as sp
 
 
-#plt.plot(outcp.y)
-#plt.title('cp output')
-#plt.show()
-print("================")
-print("================")
-print("================")
-print("classification errors...")
+for lam in [1e-8,1e-6,1e-4]:
+    loss = "log"
+    if loss == "log":
+        with open('saved_results_log_'+str(lam),'rb') as file:
+            cache = pickle.load(file)        
+    else:
+        with open('saved_results_'+str(lam),'rb') as file:
+            cache = pickle.load(file)
+
+    outcp = cache.get('cp')
+    if outcp is None:
+        outcp = cache['outcp']
+
+    f_psbg = cache['f_psbg']
+    t_psbg = cache['t_psbg']
+
+    print("================")
+    print("================")
+    print("================")
+    print("classification errors...")
 
 
-print("================")
-print("================")
-print("================")
-print("plotting raw function values...")
 
 
-plt.plot(outcp.times,np.array(outcp.f))
-plt.plot(t_psbg,f_psbg)
+    getClassErr = True
+    if getClassErr :
+        path2Data = 'data/trip_advisor/'
+        S_train = sp.load_npz(path2Data+'S_train.npz')
+        S_test = sp.load_npz(path2Data+'S_test.npz')
 
-history_2fg = cache['history_2fg']
-f_2fg = history_2fg[0]
-t_2fg = history_2fg[1]
-plt.plot(t_2fg,f_2fg)
+        S_A     = sp.load_npz(path2Data+'S_A.npz')
+        y_train = np.load(path2Data+'y_train.npy')
+        y_test = np.load(path2Data+'y_test.npy')
 
-plt.plot(cache['outfrb'].times,cache['outfrb'].f)
-plt.plot(cache['outtseng'].times,cache['outtseng'].f)
+        print(f"z ps2f_g sparsity = {sum(abs(cache['z_2fg'])>1e-5)}")
+        print(f"Hz ps2f_g sparsity = {sum(abs(S_A.dot(cache['z_2fg'][1:]))>1e-5)}")
 
-plt.xlabel('times (s)')
-plt.title('raw function values')
+        y_train_class = 2*(y_train==5)-1
+        y_test_class = 2*(y_test==5)-1
+        def getClassify(x,algo):
+            train_pred = np.sign(x[0] + S_train.dot(S_A.dot(x[1:])))
+            train_err = sum(train_pred != y_train_class)/len(y_train_class)
+            test_pred = np.sign(x[0] + S_test.dot(S_A.dot(x[1:])))
+            test_err = sum(test_pred != y_test_class)/len(y_test_class)
+            print(f"{algo} training error = {train_err}")
+            print(f"{algo} testing error = {test_err}")
 
-plt.legend(['cp','psb_g','2fembed_g','frb','tseng']) # MAPR plan
-plt.show()
+        getClassify(cache['z_2fg'],"ps2f_g")
+        getClassify(outcp.y,"cp")
+        getClassify(cache['outtseng'].x,"tseng")
+        getClassify(cache['outfrb'].x,"FRB")
 
-plt.plot(cache['t_ps2fembed'],cache['f_ps2fembed'])
-plt.plot(cache['t_ps2fembed_g'],cache['f_ps2fembed_g'])
-plt.plot(cache['t_ps2fembed_r'],cache['f_ps2fembed_r'])
-plt.plot(cache['t_ps2fembed_c'],cache['f_ps2fembed_c'])
-plt.legend(['2f_embed','2f_embed_g','2f_embed_r','2f_embed_c'])
-plt.show()
+    print("================")
+    print("================")
+    print("================")
+    print("objective function values...")
+
+
+    history_2fg = cache['history_2fg']
+    f_2fg = history_2fg[0]
+    t_2fg = history_2fg[1]
+    plt.plot(t_2fg,f_2fg)
+    if lam == 1e-8:
+        markFreq=20
+    else:
+        markFreq=200
+    plt.plot(t_psbg,f_psbg,marker='o',markevery=markFreq)
+    markFreq=50
+    plt.plot(outcp.times,np.array(outcp.f),marker='s',markevery=markFreq)
+
+    plt.plot(cache['outfrb'].times,cache['outfrb'].f,markevery=markFreq,marker='v')
+    plt.plot(cache['outtseng'].times,cache['outtseng'].f,markevery=markFreq,marker='d')
+
+    #plt.plot(noembedcache['history_2fg'][1],noembedcache['history_2fg'][0])
+
+    fntSze=14
+    plt.xlabel('times (s)',fontsize=fntSze)
+    plt.title('objective function values',fontsize=fntSze)
+
+    plt.legend(['psf-g','psb-g','cp-bt','frb','tseng-pd','noembed'],fontsize=fntSze)
+    plt.xlim((0,600))
+    plt.grid()
+    plt.xlabel('times (s)')
+
+
+    if lam == 1e-8:
+        prob = "dense"
+    elif lam == 1e-6:
+        prob = "med"
+    else:
+        prob = "sparse"
+    figname = 'figs/raw_'+prob+'.pdf'
+    #plt.savefig(figname,format='pdf')
+
+    plt.show()
+    #plt.close()
+    print("greedy compare...")
+
+    history_2fr = cache['history_2fr']
+    f_2fr = history_2fr[0]
+    t_2fr = history_2fr[1]
+    history_2fc = cache['history_2fc']
+    f_2fc = history_2fc[0]
+    t_2fc = history_2fc[1]
+
+    plt.plot(t_2fg,f_2fg)
+    markFreq=50
+    plt.plot(cache['t_ps2fembed'],cache['f_ps2fembed'],'k>-',markevery=markFreq)
+    markFreq=100
+    plt.plot(t_2fr,f_2fr,'m*-',markevery=markFreq)
+    plt.plot(t_2fc,f_2fc,'ch-',markevery=markFreq)
+
+    plt.legend(['psf-g','psf-1','psf-r','psf-c'],fontsize=fntSze)
+    plt.xlim((0,600))
+    plt.title('objective function values',fontsize=fntSze)
+    plt.xlabel('times (s)',fontsize=fntSze)
+    plt.grid()
+    figname = 'figs/block_compare_'+prob+'.pdf'
+    #plt.savefig(figname,format='pdf')
+    plt.show()
+    #plt.close()
+
 if False :
     opt = min(np.concatenate([np.array(outcp.f),f_psbg,cache['f_ps2fembed_g']]))
 

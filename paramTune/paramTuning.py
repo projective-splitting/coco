@@ -3,7 +3,7 @@ import sys
 sys.path.append('../')
 sys.path.append('../../sphinx_projSplitFit/projSplitFit/')
 
-import projSplit as ps
+import projSplitFit as ps
 import regularizers
 import lossProcessors as lp
 import scipy.sparse.linalg as sl
