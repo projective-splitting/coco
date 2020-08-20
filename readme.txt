@@ -128,3 +128,9 @@ Tseng_product()    - Tseng-pd, [4]
 for_reflect_back() - frb-pd, [5]
 
 Additional utilities for group logistic regression are defined in group_lr.py.
+
+Update: August 20th 2020. In mid August, PJ discovered an error in the rare feature selection experiment. After fixing this bug, the performance gap between our method and ada3op was quite small. So we decided to remove this 
+experiment from the paper. We have updated the arXiv version. The paper is still under review at COAP at this time and we will try to remove the experiment from the next revision, if the paper is accepted.
+
+Note that in our paper submitted to MAPR we also have experiments on the rare feature selection problem. The current version of those experiments uses code in this repository. See MAPRreadme.txt for how to 
+reproduce those experiments. 
