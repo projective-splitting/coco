@@ -4,11 +4,11 @@ from matplotlib import pyplot as plt
 import scipy.sparse as sp
 
 
-for lam in [1e-8,1e-6,1e-4]:
+for lam in [1e-4]:
     loss = "log"
     if loss == "log":
         with open('saved_results_log_'+str(lam),'rb') as file:
-            cache = pickle.load(file)        
+            cache = pickle.load(file)
     else:
         with open('saved_results_'+str(lam),'rb') as file:
             cache = pickle.load(file)
@@ -77,7 +77,7 @@ for lam in [1e-8,1e-6,1e-4]:
     plt.plot(cache['outfrb'].times,cache['outfrb'].f,markevery=markFreq,marker='v')
     plt.plot(cache['outtseng'].times,cache['outtseng'].f,markevery=markFreq,marker='d')
 
-    #plt.plot(noembedcache['history_2fg'][1],noembedcache['history_2fg'][0])
+    plt.plot(cache['history_2fg_ne'][1],cache['history_2fg_ne'][0])
 
     fntSze=14
     plt.xlabel('times (s)',fontsize=fntSze)

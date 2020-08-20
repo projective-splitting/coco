@@ -5,9 +5,9 @@ Run this script to reproduce the specific experiments in the paper. Follow the d
 import os
 import sys
 if sys.version_info[0]==2:
-    which2run = raw_input("Enter which problem to solve: portfolio, group_lr, or rare_feature >>> ")
+    which2run = raw_input("Enter which problem to solve: portfolio or group_lr >>> ")
 else:
-    which2run = input("Enter which problem to solve: portfolio, group_lr, or rare_feature >>> ")
+    which2run = input("Enter which problem to solve: portfolio or group_lr >>> ")
 
 print('You selected '+ which2run)
 if which2run=='portfolio':
@@ -19,9 +19,9 @@ elif which2run=='group_lr':
     print('and it may be longer for you.')
     options = '1,2,3,4,5,6'
 elif which2run=='rare_feature':
-    print('WARNING: running time on our machine for this experiment was about 30 minutes,')
-    print('and much longer for experiment #3; it may be longer for you.')
-    options = '1,2,3'
+    print("Sorry, rare feature is no longer supported in this experiment. Previously there was an error in the rare feature code.")
+    print("When this was fixed, the performance of our method was similar to others so we simply removed this experiment from the paper.")
+    exit() 
 else:
     print('You did not enter a correct problem, exiting')
     exit()
@@ -63,14 +63,5 @@ elif which2run=='group_lr':
                                --betacp 1e-5 --iter 3000')
     else:
         print('You did not enter an experiment number 1, 2, 3, 4, 5, or 6.  Exiting.')
-elif which2run=='rare_feature':
-    if whichExp==1:
-        os.system('python run_rare_feature.py --gamma1f 1.0 --iter 10000')
-    elif whichExp==2:
-        os.system('python run_rare_feature.py --lam 1e-2 --gamma2f 1e1 --betacp 1e-3\
-                                   --gammatg 1e4 --gammafrb 1e4 --iter 10000')
-    elif whichExp==3:
-        os.system('python run_rare_feature.py --lam 1e-1 --gamma1f 1e4 --gamma2f 1e5 \
-                                   --betacp 1e-7 --gammatg 1e6 --gammafrb 1e6 --iter 5000')
-    else:
-        print('You did not enter an experiment number 1, 2, or 3.  Exiting.')
+else:
+    print("enter group_lr or portfolio for the experiment")

@@ -39,10 +39,12 @@ path2data = 'data/trip_advisor/'
 maxIterG = 50000
 maxIterCP = 10000
 
+np.random.seed(1)
 loss = "log"
-lams =        [1e-8,1e-6,1e-4]
-gamma2fembeds=[1e-5 , 1e-6  , 0.001,1.0]
+lams =        [1e-4]
+#gamma2fembeds=[1e-5 , 1e-6  , 0.001,1.0]
 #gamma2fembeds=[1e-6  , 0.001,1.0]
+gamma2fembeds = [0.0001]
 #tsengs = [100.0]
 #frbs = [100.0]
 gamma1fembeds=[0.0001 , 0.0001  , 0.001,1.0]
@@ -176,7 +178,7 @@ for i in range(len(lams)):
         print(f"psb_g total running time {t1-t0}")
 
     run2f_embed_g = True
-    noEmbed = False 
+    noEmbed = True
     if run2f_embed_g :
         print("ps2f_embed_g")
         gamma2fembed = gamma2fembeds[i]
@@ -255,15 +257,19 @@ for i in range(len(lams)):
         if runTseng:
             cache['outtseng']=outtseng
         if run2f_embed_g:
-            if blockAct == "greedy":
-                cache['history_2fg']=history_2fg
-                cache['z_2fg'] = z_2fg
-            elif blockAct == "random":
-                cache['history_2fr']=history_2fg
-                cache['z_2fr'] = z_2fg
-            elif blockAct == "cyclic":
-                cache['history_2fc']=history_2fg
-                cache['z_2fc'] = z_2fg
+            if noEmbed :
+                cache['history_2fg_ne']=history_2fg
+                cache['z_2fg_ne'] = z_2fg
+            else:
+                if blockAct == "greedy":
+                    cache['history_2fg']=history_2fg
+                    cache['z_2fg'] = z_2fg
+                elif blockAct == "random":
+                    cache['history_2fr']=history_2fg
+                    cache['z_2fr'] = z_2fg
+                elif blockAct == "cyclic":
+                    cache['history_2fc']=history_2fg
+                    cache['z_2fc'] = z_2fg
 
         #cache['t_ps2fembed_c']=t_ps2fembed_c
         #cache['f_ps2fembed_c']=f_ps2fembed_c
