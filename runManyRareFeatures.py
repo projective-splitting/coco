@@ -1,5 +1,7 @@
 import sys
-sys.path.append('../sphinx_projSplitFit/projSplitFit/')
+
+path2projSplitFit = '../sphinx_projSplitFit/projSplitFit/'
+sys.path.append(path2projSplitFit)
 sys.path.append('paramTune/')
 
 try:
