@@ -2,9 +2,15 @@ import sys
 sys.path.append('../sphinx_projSplitFit/projSplitFit/')
 sys.path.append('paramTune/')
 
-import projSplitFit as ps
-import regularizers
-import lossProcessors as lp
+try:
+    import projSplitFit as ps
+    import regularizers
+    import lossProcessors as lp
+except:
+    print("To use all of the available features, you may need to install projSplitFit package from here: ")
+    print("https://github.com/1austrartsua1/projSplitFit")
+
+
 import scipy.sparse.linalg as sl
 
 from utils import setUpRareFeatureProblem
@@ -77,7 +83,7 @@ for i in range(len(lams)):
     #out1f = algo.PS1f_bt_comp(init,maxIter,G,theProx1,theProx2,
     #                      theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=False,verbose=False)
 
-    runTseng=False
+    runTseng=True
     if runTseng :
         print("Tseng")
         init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
@@ -86,14 +92,14 @@ for i in range(len(lams)):
                                       gamma2=tsengs[i],G=G,Gt=Gt,historyFreq=20)
 
 
-    runFRB = False
+    runFRB = True
     if runFRB :
         print("FRB")
         outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=maxIterCP,
                                gamma0=frbs[i],gamma1=frbs[i],G=G,Gt=Gt,verbose=True,
                                getFuncVals=True,historyFreq=20)
 
-    runCP = False
+    runCP = True
     if runCP :
         print("cp")
         stepIncAmount = 1.0
