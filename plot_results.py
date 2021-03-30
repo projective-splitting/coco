@@ -7,18 +7,18 @@ import scipy.sparse as sp
 for lam in [1e-4]:
     loss = "log"
     if loss == "log":
-        with open('saved_results_log_'+str(lam),'rb') as file:
+        with open('results/bnl_results_log_'+str(lam),'rb') as file:
             cache = pickle.load(file)
     else:
-        with open('saved_results_'+str(lam),'rb') as file:
+        with open('results/bnl_results_'+str(lam),'rb') as file:
             cache = pickle.load(file)
 
     outcp = cache.get('cp')
     if outcp is None:
         outcp = cache['outcp']
 
-    f_psbg = cache['f_psbg']
-    t_psbg = cache['t_psbg']
+    #f_psbg = cache['f_psbg']
+    #t_psbg = cache['t_psbg']
 
     print("================")
     print("================")
@@ -70,20 +70,22 @@ for lam in [1e-4]:
         markFreq=20
     else:
         markFreq=200
-    plt.plot(t_psbg,f_psbg,marker='o',markevery=markFreq)
+    #plt.plot(t_psbg,f_psbg,marker='o',markevery=markFreq)
     markFreq=50
-    plt.plot(outcp.times,np.array(outcp.f),marker='s',markevery=markFreq)
+    plt.plot(outcp.times,np.array(outcp.f),marker='s',markevery=markFreq,label='cp-bt')
 
-    plt.plot(cache['outfrb'].times,cache['outfrb'].f,markevery=markFreq,marker='v')
-    plt.plot(cache['outtseng'].times,cache['outtseng'].f,markevery=markFreq,marker='d')
+    plt.plot(cache['outfrb'].times,cache['outfrb'].f,markevery=markFreq,marker='v',label='frb')
+    plt.plot(cache['outtseng'].times,cache['outtseng'].f,markevery=markFreq,marker='d',label='tseng-pd')
 
-    plt.plot(cache['history_2fg_ne'][1],cache['history_2fg_ne'][0])
+    plt.plot(cache['history_2fg'][1],cache['history_2fg'][0],label='psf-g')
+    plt.plot(cache['t_ps2f'],cache['f_ps2f'],label='psf-1')
+    plt.plot(cache['t_ps1f'],cache['f_ps1f'],label='ps1f-1')
 
     fntSze=14
     plt.xlabel('times (s)',fontsize=fntSze)
     plt.title('objective function values',fontsize=fntSze)
 
-    plt.legend(['psf-g','psb-g','cp-bt','frb','tseng-pd','noembed'],fontsize=fntSze)
+    plt.legend(fontsize=fntSze)
     plt.xlim((0,600))
     plt.grid()
     plt.xlabel('times (s)')
@@ -100,39 +102,43 @@ for lam in [1e-4]:
 
     plt.show()
     #plt.close()
-    print("greedy compare...")
 
-    history_2fr = cache['history_2fr']
-    f_2fr = history_2fr[0]
-    t_2fr = history_2fr[1]
-    history_2fc = cache['history_2fc']
-    f_2fc = history_2fc[0]
-    t_2fc = history_2fc[1]
+    plot_greedy_compare = False # greedy compare plot is not needed for BNL work
+    if plot_greedy_compare:
 
-    plt.plot(t_2fg,f_2fg)
-    markFreq=50
-    plt.plot(cache['t_ps2fembed'],cache['f_ps2fembed'],'k>-',markevery=markFreq)
-    markFreq=100
-    plt.plot(t_2fr,f_2fr,'m*-',markevery=markFreq)
-    plt.plot(t_2fc,f_2fc,'ch-',markevery=markFreq)
+        print("greedy compare...")
 
-    plt.legend(['psf-g','psf-1','psf-r','psf-c'],fontsize=fntSze)
-    plt.xlim((0,600))
-    plt.title('objective function values',fontsize=fntSze)
-    plt.xlabel('times (s)',fontsize=fntSze)
-    plt.grid()
-    figname = 'figs/block_compare_'+prob+'.pdf'
-    #plt.savefig(figname,format='pdf')
-    plt.show()
+        history_2fr = cache['history_2fr']
+        f_2fr = history_2fr[0]
+        t_2fr = history_2fr[1]
+        history_2fc = cache['history_2fc']
+        f_2fc = history_2fc[0]
+        t_2fc = history_2fc[1]
+
+        plt.plot(t_2fg,f_2fg)
+        markFreq=50
+        plt.plot(cache['t_ps2fembed'],cache['f_ps2fembed'],'k>-',markevery=markFreq)
+        markFreq=100
+        plt.plot(t_2fr,f_2fr,'m*-',markevery=markFreq)
+        plt.plot(t_2fc,f_2fc,'ch-',markevery=markFreq)
+
+        plt.legend(['psf-g','psf-1','psf-r','psf-c'],fontsize=fntSze)
+        plt.xlim((0,600))
+        plt.title('objective function values',fontsize=fntSze)
+        plt.xlabel('times (s)',fontsize=fntSze)
+        plt.grid()
+        figname = 'figs/block_compare_'+prob+'.pdf'
+        #plt.savefig(figname,format='pdf')
+        plt.show()
     #plt.close()
 
 if False :
-    opt = min(np.concatenate([np.array(outcp.f),f_psbg,cache['f_ps2fembed_g']]))
+    opt = min(np.concatenate([np.array(outcp.f),cache['f_ps2fembed_g']]))
 
     markFreq = 2000
     markerSz = 10
     print("plotting relative error to optimality of funtion values")
-    print("optimal value estimated as lowest returned by any algorithm")
+    print("optimal v    alue estimated as lowest returned by any algorithm")
     # only plot out to half the total number of iterations to reduce the distortion
     # caused by the inaccuracy of the estimate for opt.
     #plt.semilogy(out1f.times,(np.array(out1f.fx2)-opt)/opt)

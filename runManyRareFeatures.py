@@ -1,6 +1,6 @@
 import sys
 
-path2projSplitFit = '../sphinx_projSplitFit/projSplitFit/'
+path2projSplitFit = '../projSplitFit/'
 sys.path.append(path2projSplitFit)
 sys.path.append('paramTune/')
 
@@ -44,18 +44,26 @@ tAbsoluteStart = time.time()
 
 path2data = 'data/trip_advisor/'
 
-maxIterG = 50000
-maxIterCP = 10000
+maxIter = 20000 
 
-np.random.seed(1)
+getOld = True
+saveResults = True
+
+run2fg = True
+run1f = True
+run2f=True
+runCP = True
+runFRB = True
+runTseng=True
+
+#np.random.seed(1)
+
 loss = "log"
 lams =        [1e-4]
 #gamma2fembeds=[1e-5 , 1e-6  , 0.001,1.0]
 #gamma2fembeds=[1e-6  , 0.001,1.0]
-gamma2fembeds = [0.0001]
-#tsengs = [100.0]
-#frbs = [100.0]
-gamma1fembeds=[0.0001 , 0.0001  , 0.001,1.0]
+gamma2fs = [0.0001]
+gamma1fs=[0.0001 , 0.0001  , 0.001,1.0]
 gammabgs =    [0.0001 , 0.0001  , 0.0001,1.0]
 betacps =     [1e6,1e6,10.0,1.0]
 tsengs = [1.0,1.0,10.0,100.0]
@@ -85,33 +93,34 @@ for i in range(len(lams)):
     #out1f = algo.PS1f_bt_comp(init,maxIter,G,theProx1,theProx2,
     #                      theGrad,Gt,theFunc,gamma = gamma1f,equalRhos=False,verbose=False)
 
-    runTseng=True
+
     if runTseng :
         print("Tseng")
         init = algo.InitPoint([],[],np.zeros(d),np.zeros(p))
         outtseng = algo.tseng_product(theFunc, proxfstar_4_tseng, proxg, theGrad, init,verbose=True,
-                                      getFuncVals=True,iter=maxIterCP//2, gamma1=tsengs[i],
+                                      getFuncVals=True,iter=maxIter//2, gamma1=tsengs[i],
                                       gamma2=tsengs[i],G=G,Gt=Gt,historyFreq=20)
 
 
-    runFRB = True
+
     if runFRB :
         print("FRB")
-        outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=maxIterCP,
+        outfrb = algo.for_reflect_back(theFunc,proxfstar_4_tseng,proxg,theGrad,init,iter=maxIter,
                                gamma0=frbs[i],gamma1=frbs[i],G=G,Gt=Gt,verbose=True,
                                getFuncVals=True,historyFreq=20)
 
-    runCP = True
+
     if runCP :
         print("cp")
         stepIncAmount = 1.0
         #stepIncAmount = 1.1
         betacp = betacps[i]
         init = algo.InitPoint(np.zeros(d),np.zeros(p),[],[])
-        outcp = algo.cpBT(theProx2, theGradSmart, proxg, theFunc, hfunc, init, iter=maxIterCP,
+        outcp = algo.cpBT(theProx2, theGradSmart, proxg, theFunc, hfunc, init, iter=maxIter,
                       beta=betacps[i],stepInc=stepIncAmount,K=Gt,Kstar=G,verbose=True,historyFreq=20)
         print("cp-bt TOTAL running time: "+str(outcp.times[-1]))
         print("================")
+
 
 
     if loss == "log":
@@ -121,37 +130,22 @@ for i in range(len(lams)):
         loss2use = 2
         backProcess = lp.BackwardCG()
 
-    run2fembed=False
-    if run2fembed :
-        print("2f_embed")
-        gamma2fembed = gamma2fembeds[i]
+    embed = False
+
+
+    if run2f :
+        print("2f")
+        gamma2f = gamma2fs[i]
         t0 = time.time()
-        psObj = ps.ProjSplitFit(gamma2fembed)
+        psObj = ps.ProjSplitFit(gamma2f)
 
-        psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward2Backtrack(),
+        if embed:
+            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward2Backtrack(),
                       embed=regularizers.L1(scaling=(1-mu)*lam))
-        #psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
-        (nbeta,ngamma) = H.shape
-        shape = (ngamma-1,ngamma)
-        G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],
-                                     rmatvec = lambda x : np.concatenate((x,np.array([0]))))
-        psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
-        psObj.run(nblocks=1,maxIterations=maxIterCP,verbose=True,keepHistory=True,historyFreq=20,
-                          primalTol=0.0,dualTol=0.0)
-        f_ps2fembed = psObj.getHistory()[0]
-        t_ps2fembed = psObj.getHistory()[1]
-        t1 = time.time()
-        print(f"ps2fembed total running time {t1-t0}")
+        else:
+            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward2Backtrack())
+            psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
 
-
-    if False :
-        print("1f_embed")
-        gamma1fembed = gamma1fembeds[i]
-        t0 = time.time()
-        psObj = ps.ProjSplitFit(gamma1fembed)
-        psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward1Backtrack(),
-                      embed=regularizers.L1(scaling=(1-mu)*lam))
-        #psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
         (nbeta,ngamma) = H.shape
         shape = (ngamma-1,ngamma)
         G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],
@@ -159,11 +153,37 @@ for i in range(len(lams)):
         psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
         psObj.run(nblocks=1,maxIterations=maxIter,verbose=True,keepHistory=True,historyFreq=20,
                           primalTol=0.0,dualTol=0.0)
-        f_ps1fembed = psObj.getHistory()[0]
-        t_ps1fembed = psObj.getHistory()[1]
+        f_ps2f = psObj.getHistory()[0]
+        t_ps2f = psObj.getHistory()[1]
         t1 = time.time()
-        print(f"ps1fembed total running time {t1-t0}")
-        getSparsity(psObj.getSolution(),H,plot=True)
+        print(f"ps2f total running time {t1-t0}")
+
+
+
+    if run1f :
+        print("1f")
+        gamma1f = gamma1fs[i]
+        t0 = time.time()
+        psObj = ps.ProjSplitFit(gamma1f)
+        if embed:
+            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward1Backtrack(),
+                      embed=regularizers.L1(scaling=(1-mu)*lam))
+        else:
+            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=lp.Forward1Backtrack())
+            psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
+
+        (nbeta,ngamma) = H.shape
+        shape = (ngamma-1,ngamma)
+        G_for_ps = sl.LinearOperator(shape,matvec=lambda x: x[:-1],
+                                     rmatvec = lambda x : np.concatenate((x,np.array([0]))))
+        psObj.addRegularizer(regularizers.L1(scaling = mu*lam),linearOp=G_for_ps)
+        psObj.run(nblocks=1,maxIterations=maxIter,verbose=True,keepHistory=True,historyFreq=20,
+                          primalTol=0.0,dualTol=0.0)
+        f_ps1f = psObj.getHistory()[0]
+        t_ps1f = psObj.getHistory()[1]
+        t1 = time.time()
+        print(f"ps1f total running time {t1-t0}")
+        #getSparsity(psObj.getSolution(),H,plot=True)
 
     runPSB_g = False
     if runPSB_g :
@@ -185,20 +205,21 @@ for i in range(len(lams)):
         t1 = time.time()
         print(f"psb_g total running time {t1-t0}")
 
-    run2f_embed_g = True
-    noEmbed = True
-    if run2f_embed_g :
-        print("ps2f_embed_g")
-        gamma2fembed = gamma2fembeds[i]
+
+    embed = False
+    if run2fg :
+        print("ps2fg")
+        gamma2f = gamma2fs[i]
         t0 = time.time()
-        psObj = ps.ProjSplitFit(gamma2fembed)
+        psObj = ps.ProjSplitFit(gamma2f)
         proc = lp.Forward2Backtrack()
-        if noEmbed :
+        if embed:
+            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=proc,
+                embed=regularizers.L1(scaling=(1-mu)*lam))
+        else:
             psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=proc)
             psObj.addRegularizer(regularizers.L1(scaling=(1-mu)*lam),linearOp=H)
-        else:
-            psObj.addData(X,y,loss2use,linearOp=H,normalize=False,process=proc,
-                        embed=regularizers.L1(scaling=(1-mu)*lam))
+
 
         (nbeta,ngamma) = H.shape
         shape = (ngamma-1,ngamma)
@@ -207,7 +228,7 @@ for i in range(len(lams)):
         regStepsize=1.0
         blockAct = "greedy"
         psObj.addRegularizer(regularizers.L1(scaling = mu*lam,step=regStepsize),linearOp=G_for_ps)
-        psObj.run(nblocks=10,maxIterations=maxIterG,verbose=True,keepHistory=True,historyFreq=100,
+        psObj.run(nblocks=10,maxIterations=maxIter,verbose=True,keepHistory=True,historyFreq=100,
                           primalTol=0.0,dualTol=0.0,blockActivation=blockAct)
 
         history_2fg = psObj.getHistory()
@@ -215,10 +236,15 @@ for i in range(len(lams)):
 
 
         t1 = time.time()
-        print(f"ps2fembed_g total running time {t1-t0}")
+        print(f"ps2fg total running time {t1-t0}")
 
 
-    if False :
+    run1falt = False
+    if run1falt:
+        #this version of 1f does not use the second linear operator G_for_ps
+        #but instead defines the regularizer in a different way.
+        #The reason for G_for_ps is to deal with the intercept.
+
         gamma = gamma1f_reg_embeds[i]
         t0 = time.time()
         psObj = ps.ProjSplitFit(gamma)
@@ -236,39 +262,37 @@ for i in range(len(lams)):
         psObj.addRegularizer(regularizers.Regularizer(prox,val,scaling=lam*mu))
         psObj.run(nblocks=1,maxIterations=maxIter,verbose=False,keepHistory=True,historyFreq=1,
                   primalTol=0.0,dualTol=0.0)
-        f1f_reg_embed = psObj.getHistory()[0]
-        t1f_reg_embed = psObj.getHistory()[1]
+        f1f_alt = psObj.getHistory()[0]
+        t1f_alt = psObj.getHistory()[1]
         t1 = time.time()
-        print(f"1f reg embed total running time {t1-t0}")
+        print(f"1f alt total running time {t1-t0}")
 
 
-    saveResults = True
+
     if saveResults:
         import pickle
-        getOld = True
+
         if getOld:
             if loss == "log":
-                with open('saved_results_log_'+str(lam),'rb') as file:
+                with open('results/bnl_results_log_'+str(lam),'rb') as file:
                     cache = pickle.load(file)
             else:
-                with open('saved_results_'+str(lam),'rb') as file:
+                with open('results/bnl_results_'+str(lam),'rb') as file:
                     cache = pickle.load(file)
         else:
 
             cache = {}
 
-        #cache['out1f'] = out1f
-        #cache['out2f'] = out2f
+        if run1f:
+            cache['f_ps1f'] = f_ps1f
+            cache['t_ps1f'] = t_ps1f
 
         if runFRB:
             cache['outfrb']= outfrb
         if runTseng:
             cache['outtseng']=outtseng
-        if run2f_embed_g:
-            if noEmbed :
-                cache['history_2fg_ne']=history_2fg
-                cache['z_2fg_ne'] = z_2fg
-            else:
+        if run2fg:
+            if embed:
                 if blockAct == "greedy":
                     cache['history_2fg']=history_2fg
                     cache['z_2fg'] = z_2fg
@@ -279,6 +303,11 @@ for i in range(len(lams)):
                     cache['history_2fc']=history_2fg
                     cache['z_2fc'] = z_2fg
 
+            else:
+                cache['history_2fg']=history_2fg
+                cache['z_2fg'] = z_2fg
+
+
         #cache['t_ps2fembed_c']=t_ps2fembed_c
         #cache['f_ps2fembed_c']=f_ps2fembed_c
         if runPSB_g:
@@ -287,17 +316,17 @@ for i in range(len(lams)):
         if runCP:
             cache['outcp'] = outcp
 
-        if run2fembed:
-            cache['f_ps2fembed'] = f_ps2fembed
-            cache['t_ps2fembed'] = t_ps2fembed
+        if run2f:
+            cache['f_ps2f'] = f_ps2f
+            cache['t_ps2f'] = t_ps2f
 
 
         if loss == "log":
-            with open('saved_results_log_'+str(lam),'wb') as file:
+            with open('results/bnl_results_log_'+str(lam),'wb') as file:
                 pickle.dump(cache,file)
 
         else:
-            with open('saved_results_'+str(lam),'wb') as file:
+            with open('results/bnl_results_'+str(lam),'wb') as file:
                 pickle.dump(cache,file)
 
 

@@ -327,7 +327,6 @@ def PS2f_bt_symmsplit(theFunc,theGrad1,theGrad2,theProx1,theProx2,init,iter=1000
             gamma=1.0,Delta=1.0,hyper_resid=-1,stepDecrease=0.7,stepIncrease = 1.0,
             equalRho=True,verbose=True,adaptive_gamma=False):
     '''
-    XX
     In the symmsplit version, the objective is of the form
     min_x f_1(x)+g_1(x) + f_2(x)+g_2(x)
     where f_1 and f_2 are smooth and evaluated via gradients and g_1 and g_2 are nonsmooth
